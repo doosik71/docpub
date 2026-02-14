@@ -27,14 +27,17 @@ body {
 
 /* Quill Editor styles for ensuring visibility and editability */
 .ql-editor {
-  min-height: 250px;
-  height: 100%;
-  border: 1px dashed blue !important; /* Temporary for debugging */
+  min-height: 250px; /* Keep a minimum height */
+  height: 100%;      /* Take full height of parent */
+  /* border: 1px dashed blue !important; Removed for debugging */
   box-sizing: border-box; /* Ensure padding and border are included in height */
+  overflow-y: auto;  /* Enable internal scrolling */
 }
 /* Ensure the container also has appropriate height */
 .ql-container.ql-snow {
-  border: 1px solid green !important; /* Temporary for debugging */
-  min-height: 300px;
-  height: auto; /* Let content define height or use explicit value */
+  /* border: 1px solid green !important; Removed for debugging */
+  min-height: 300px; /* Keep a minimum height for the whole container */
+  height: 100%;      /* Take full height of parent */
+  display: flex;     /* Make it a flex container */
+  flex-direction: column; /* Arrange children in a column */
 }
