@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html, body {
+  /* height: 100%; Moved to @media screen */
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -25,19 +29,88 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+main {
+  /* height: 100%; Moved to @media screen */
+}
+
 /* Quill Editor styles for ensuring visibility and editability */
 .ql-editor {
-  min-height: 250px; /* Keep a minimum height */
-  height: 100%;      /* Take full height of parent */
-  /* border: 1px dashed blue !important; Removed for debugging */
+  min-height: 0; /* Allow flex-grow to manage height, but prevent collapse */
+  flex-grow: 1; /* Make the editor content area grow */
   box-sizing: border-box; /* Ensure padding and border are included in height */
   overflow-y: auto;  /* Enable internal scrolling */
 }
 /* Ensure the container also has appropriate height */
 .ql-container.ql-snow {
-  /* border: 1px solid green !important; Removed for debugging */
-  min-height: 300px; /* Keep a minimum height for the whole container */
-  height: 100%;      /* Take full height of parent */
+  flex-grow: 1;      /* Make the Quill container grow */
+  /* height: calc(100% - 42px); Moved to @media screen */
   display: flex;     /* Make it a flex container */
   flex-direction: column; /* Arrange children in a column */
+}
+
+/* Specific toolbar styling */
+.ql-toolbar.ql-snow {
+  height: 42px; /* Fixed height for the toolbar */
+  flex-shrink: 0; /* Prevent the toolbar from shrinking */
+  border-bottom: 1px solid #ccc; /* Add a bottom border for visual separation */
+}
+
+@media screen {
+  html, body { height: 100%; }
+  main { height: 100%; }
+  .ql-container.ql-snow { height: calc(100% - 42px); }
+}
+
+@media print {
+  h1 {
+    display: none !important;
+  }
+  #quill-toolbar, .ql-toolbar {
+    display: none !important;
+  }
+  #editor-wrapper-page,
+  #quill-editor-component,
+  #quill-container,
+  .ql-container,
+  .ql-editor {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: auto !important;
+    overflow: visible !important; /* Allow content to flow */
+    flex-grow: 0 !important; /* Prevent flex-grow from taking up space on print */
+    flex-basis: auto !important;
+    display: block !important; /* Change display to block */
+  }
+  #editor-wrapper-page {
+    border: none !important;
+  }
+  #quill-editor-component {
+    border: none !important;
+  }
+  .ql-container {
+    border: none !important;
+  }
+  .ql-editor {
+    border: none !important; /* Added */
+  }
+}
+
+/* Remote Cursor Styling */
+.remote-cursor-indicator {
+  position: absolute; /* Set by JS, but declare here */
+  width: 2px; /* Fixed width */
+  pointer-events: none; /* Ensure it doesn't interfere with editing */
+  transition: left 0.05s ease-out, top 0.05s ease-out; /* Smooth movement */
+}
+
+.remote-cursor-name-tag {
+  position: absolute; /* Relative to the indicator */
+  white-space: nowrap;
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  color: white; /* Text color */
+  top: -16px; /* Position above the cursor line */
+  left: -2px; /* Slight offset */
+  pointer-events: none; /* Ensure it doesn't interfere with editing */
 }

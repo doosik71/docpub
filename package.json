@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "cross-env NEXT_TEST_DISABLE_TURBOPACK=1 npx next dev",
+    "build": "next dev",
     "start": "next start",
     "lint": "eslint",
     "server": "node src/server/collaboration.js"
@@ -27,6 +27,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5",
-    "tailwindcss": "^4"
+    "tailwindcss": "^4",
+    "cross-env": "^7.0.3"
   }
 }

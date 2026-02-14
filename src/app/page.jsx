@@ -1,12 +1,21 @@
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 
-const DynamicQuillEditor = dynamic(() => import("../components/editor/index.jsx"), { ssr: false });
+const DynamicQuillEditor = dynamic(
+  () => import("../components/editor/index.jsx"),
+  { ssr: false },
+);
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center py-8 px-4">
-      <h1 className="text-4xl font-bold mb-8">DocPub</h1> {/* Added DocPub title */}
-      <div className="w-full max-w-[794px] rounded-lg border flex flex-col flex-grow">
+    <main className="flex min-h-screen flex-col items-center py-4 px-4">
+      <h1 className="text-4xl font-bold mb-4">DocPub</h1>{" "}
+      {/* Reduced bottom margin */}
+      <div
+        id="editor-wrapper-page"
+        className="w-full max-w-[794px] rounded-lg border border-gray-300 flex flex-col"
+      >
+        {" "}
+        {/* Removed fixed height constraint */}
         <DynamicQuillEditor />
       </div>
     </main>
