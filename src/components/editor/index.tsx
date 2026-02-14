@@ -2,16 +2,22 @@
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Section from '@/core/extensions/section';
 
 const TiptapEditor = () => {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, Section],
     content: `
-      <h2>
-        Welcome to docpub!
-      </h2>
+      <sec>
+        <h2>
+          This is a Section
+        </h2>
+        <p>
+          And this is the content within the section. This demonstrates the custom 'sec' tag mapping.
+        </p>
+      </sec>
       <p>
-        This is a basic Tiptap editor setup. Start typing here...
+        This is content outside the section.
       </p>
     `,
     immediatelyRender: false,

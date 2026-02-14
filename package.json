@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@hocuspocus/provider": "^3.4.4",
-    "@prisma/client": "^7.4.0",
     "@tiptap/core": "^3.19.0",
     "@tiptap/pm": "^3.19.0",
     "@tiptap/react": "^3.19.0",
@@ -28,7 +27,6 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "prisma": "^6.19.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
