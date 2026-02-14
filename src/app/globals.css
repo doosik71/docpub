@@ -61,6 +61,16 @@ h1 {
   border-bottom: 1px solid #ccc; /* Add a bottom border for visual separation */
 }
 
+/* Caption styling for Quill */
+figcaption {
+  display: block;
+  font-weight: bold;
+  color: var(--foreground);
+  text-align: center;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
 main div.ql-editor h1,
 main div.ql-editor h2,
 main div.ql-editor h3,

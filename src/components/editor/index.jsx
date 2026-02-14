@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import Quill from "quill";
 import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import "quill/dist/quill.snow.css";
+import "@/core/quill-caption"; // Import to register the blot
 
 const QuillEditor = forwardRef(({ userName }, ref) => {
   console.log("QuillEditor rendering..."); // Debug: Confirm component is rendering
@@ -27,7 +35,7 @@ const QuillEditor = forwardRef(({ userName }, ref) => {
       if (typeof window !== "undefined") {
         window.print();
       }
-    }
+    },
   }));
 
   useEffect(() => {
@@ -59,21 +67,27 @@ const QuillEditor = forwardRef(({ userName }, ref) => {
       });
 
       newProvider.awareness.on("update", (update, origin) => {
-        console.log('Awareness update received:', { update, origin }); // Debug
+        console.log("Awareness update received:", { update, origin }); // Debug
         const states = newProvider.awareness.getStates();
         const activeClientIDs = new Set();
 
         states.forEach((state, clientID) => {
           activeClientIDs.add(clientID);
 
-          if (clientID !== newProvider.document.clientID && state.user && state.cursor) {
+          if (
+            clientID !== newProvider.document.clientID &&
+            state.user &&
+            state.cursor
+          ) {
             // Re-added remote cursor logging for debugging purposes
-            console.log(`Remote user ${state.user.name} (ID: ${clientID}) at cursor:`, state.cursor);
+            console.log(
+              `Remote user ${state.user.name} (ID: ${clientID}) at cursor:`,
+              state.cursor,
+            );
           }
         });
         // No visual cursor implementation, just logging
       });
-
 
       quillInstance = new Quill(quillContainer, {
         theme: "snow",
@@ -134,11 +148,12 @@ const QuillEditor = forwardRef(({ userName }, ref) => {
     if (provider && userName) {
       provider.awareness.setLocalStateField("user", {
         name: userName,
-        color: provider.awareness.getLocalState()?.user?.color || `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+        color:
+          provider.awareness.getLocalState()?.user?.color ||
+          `#${Math.floor(Math.random() * 16777215).toString(16)}`,
       });
     }
   }, [userName, provider]);
-
 
   // if (!quill) { // Removed loading state to force rendering
   //   return null;
@@ -164,6 +179,7 @@ const QuillEditor = forwardRef(({ userName }, ref) => {
         <button className="ql-code-block"></button>
         <button className="ql-link"></button>
         <button className="ql-image"></button>
+        <button className="ql-caption">🈪</button> {/* Added Caption button */}
       </div>
       {/* Editor content area */}
       <div
