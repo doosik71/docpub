@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-html, body {
+html,
+body {
   /* height: 100%; Moved to @media screen */
 }
 
@@ -9,28 +10,14 @@ html, body {
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-main {
-  /* height: 100%; Moved to @media screen */
+h1 {
+  text-align: left;
 }
 
 /* Quill Editor styles for ensuring visibility and editability */
@@ -38,13 +25,32 @@ main {
   min-height: 0; /* Allow flex-grow to manage height, but prevent collapse */
   flex-grow: 1; /* Make the editor content area grow */
   box-sizing: border-box; /* Ensure padding and border are included in height */
-  overflow-y: auto;  /* Enable internal scrolling */
+  overflow-y: auto; /* Enable internal scrolling */
+
+  /* Scrollbar Styling for Webkit browsers */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1); /* Semi-transparent track */
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3); /* Semi-transparent thumb */
+    border-radius: 10px;
+  }
+
+  /* Scrollbar Styling for Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0);
 }
 /* Ensure the container also has appropriate height */
 .ql-container.ql-snow {
-  flex-grow: 1;      /* Make the Quill container grow */
+  flex-grow: 1; /* Make the Quill container grow */
   /* height: calc(100% - 42px); Moved to @media screen */
-  display: flex;     /* Make it a flex container */
+  display: flex; /* Make it a flex container */
   flex-direction: column; /* Arrange children in a column */
 }
 
@@ -55,17 +61,100 @@ main {
   border-bottom: 1px solid #ccc; /* Add a bottom border for visual separation */
 }
 
+main div.ql-editor h1,
+main div.ql-editor h2,
+main div.ql-editor h3,
+main div.ql-editor h4 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+main div.ql-editor p,
+main div.ql-editor ol,
+main div.ql-editor ul {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+
+main div.ql-editor ol,
+main div.ql-editor ul {
+  padding-left: 0em;
+}
+
+main div.ql-editor li.ql-indent-1:not(.ql-direction-rtl) {
+  padding-left: 2.5em;
+}
+
+main div.ql-editor li.ql-indent-2:not(.ql-direction-rtl) {
+  padding-left: 3.5em;
+}
+
+main div.ql-editor li.ql-indent-3:not(.ql-direction-rtl) {
+  padding-left: 4.5em;
+}
+
+main div.ql-editor li.ql-indent-4:not(.ql-direction-rtl) {
+  padding-left: 5.5em;
+}
+
+main div.ql-editor li.ql-indent-5:not(.ql-direction-rtl) {
+  padding-left: 6.5em;
+}
+
+main div.ql-editor li.ql-indent-6:not(.ql-direction-rtl) {
+  padding-left: 7.5em;
+}
+
+main div.ql-editor li.ql-indent-7:not(.ql-direction-rtl) {
+  padding-left: 8.5em;
+}
+
+main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
+  padding-left: 9.5em;
+}
+
 @media screen {
-  html, body { height: 100%; }
-  main { height: 100%; }
-  .ql-container.ql-snow { height: calc(100% - 42px); }
+  html,
+  body {
+    height: 100%;
+  }
+  main {
+    height: 100%;
+  }
+  .ql-container.ql-snow {
+    height: calc(100% - 42px);
+  }
 }
 
 @media print {
+  @page {
+    margin: 1in;
+  }
+  @page A4 {
+    size: A4;
+    margin: 1in;
+  }
+  @page Letter {
+    size: Letter;
+    margin: 1in;
+  }
+
+  html,
+  body {
+    overflow: visible !important;
+  }
+
+  h1,
+  h2 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+
   h1 {
     display: none !important;
   }
-  #quill-toolbar, .ql-toolbar {
+  #quill-toolbar,
+  .ql-toolbar {
     display: none !important;
   }
   #editor-wrapper-page,
@@ -80,6 +169,7 @@ main {
     flex-grow: 0 !important; /* Prevent flex-grow from taking up space on print */
     flex-basis: auto !important;
     display: block !important; /* Change display to block */
+    page-break-inside: auto !important; /* Allow content to break inside editor */
   }
   #editor-wrapper-page {
     border: none !important;
@@ -92,6 +182,7 @@ main {
   }
   .ql-editor {
     border: none !important; /* Added */
+    padding: 0 !important; /* Remove padding for print */
   }
 }
 
@@ -100,7 +191,9 @@ main {
   position: absolute; /* Set by JS, but declare here */
   width: 2px; /* Fixed width */
   pointer-events: none; /* Ensure it doesn't interfere with editing */
-  transition: left 0.05s ease-out, top 0.05s ease-out; /* Smooth movement */
+  transition:
+    left 0.05s ease-out,
+    top 0.05s ease-out; /* Smooth movement */
 }
 
 .remote-cursor-name-tag {

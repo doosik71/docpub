@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import Quill from "quill";
 import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import "quill/dist/quill.snow.css";
 
-const QuillEditor = () => {
+const QuillEditor = forwardRef(({ userName }, ref) => {
   console.log("QuillEditor rendering..."); // Debug: Confirm component is rendering
 
   const [quillContainer, setQuillContainer] = useState(null);
@@ -21,6 +21,14 @@ const QuillEditor = () => {
       setQuillContainer(node);
     }
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    handlePrint: () => {
+      if (typeof window !== "undefined") {
+        window.print();
+      }
+    }
+  }));
 
   useEffect(() => {
     let quillInstance;
@@ -43,11 +51,10 @@ const QuillEditor = () => {
       });
       console.log("HocuspocusProvider created:", newProvider); // Debug
 
-      const localUserName = `User ${Math.floor(Math.random() * 1000)}`;
       const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
 
       newProvider.awareness.setLocalStateField("user", {
-        name: localUserName,
+        name: userName, // Use userName prop
         color: localUserColor,
       });
 
@@ -120,7 +127,18 @@ const QuillEditor = () => {
       // remoteCursorElements.forEach(element => element.remove()); // Re-added remote cursor cleanup for debugging
       // remoteCursorElements.clear(); // Re-added remote cursor cleanup for debugging
     };
-  }, [quillContainer]);
+  }, [quillContainer, userName]); // Add userName to dependency array
+
+  // Effect to update awareness when userName changes
+  useEffect(() => {
+    if (provider && userName) {
+      provider.awareness.setLocalStateField("user", {
+        name: userName,
+        color: provider.awareness.getLocalState()?.user?.color || `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+      });
+    }
+  }, [userName, provider]);
+
 
   // if (!quill) { // Removed loading state to force rendering
   //   return null;
@@ -155,6 +173,6 @@ const QuillEditor = () => {
       ></div>
     </div>
   );
-};
+});
 
 export default QuillEditor;
