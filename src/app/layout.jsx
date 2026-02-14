@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+// import type { Metadata } from "next"; // TypeScript 구문 제거
 // import { Geist, Geist_Mono } from "next/font/google"; // Geist 폰트 관련 코드 제거
 import "./globals.css";
 
@@ -13,16 +13,14 @@ import "./globals.css";
 //   subsets: ["latin"],
 // });
 
-export const metadata: Metadata = {
+export const metadata = { // Metadata 타입 제거
   title: "docpub - Collaborative XML Editor",
   description: "Open-source Collaborative XML DTP",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}) { // Readonly<{ children: React.ReactNode; }> 타입 제거
   return (
     <html lang="en">
       <body /* className={`${geistSans.variable} ${geistMono.variable} antialiased`} */ > {/* Geist 폰트 클래스 제거 */}

@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Quill Editor styles for ensuring visibility and editability */
+.ql-editor {
+  min-height: 250px;
+  height: 100%;
+  border: 1px dashed blue !important; /* Temporary for debugging */
+  box-sizing: border-box; /* Ensure padding and border are included in height */
+}
+/* Ensure the container also has appropriate height */
+.ql-container.ql-snow {
+  border: 1px solid green !important; /* Temporary for debugging */
+  min-height: 300px;
+  height: auto; /* Let content define height or use explicit value */
+}
