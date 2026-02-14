@@ -2,21 +2,21 @@
 
 `docpub` 프로젝트의 개발 단계와 향후 비전을 설명합니다. 본 프로젝트는 총 4단계의 마일스톤을 거쳐 완성됩니다.
 
-## Phase 1: 기반 구축 (Foundational Setup) - **진행 중**
+## Phase 1: 기반 구축 (Foundational Setup) - **완료**
 
 프로젝트의 핵심 엔진과 기본적인 편집 환경을 구축합니다.
 
-- [ ] 프로젝트 스택 초기화 (Next.js, Tiptap, Tailwind CSS)
-- [ ] 핵심 XML 스키마 정의 (JATS 호환) 및 Tiptap 노드 매핑
-- [ ] 기본 위지윅(WYSIWYG) 편집 기능 구현 (텍스트, 제목, 리스트)
+- [x] 프로젝트 스택 초기화 (Next.js, Quill.js, Tailwind CSS)
+- [ ] 핵심 XML 스키마 정의 (JATS 호환) 및 Quill 노드 매핑
+- [x] 기본적인 위지윅(WYSIWYG) 편집 기능 구현 (텍스트, 제목, 리스트)
 - [ ] 사용자 인증(Auth) 및 기본적인 폴더/파일 관리 UI 개발
 
-## Phase 2: 협업 및 버전 관리 (Collaboration & Sync)
+## Phase 2: 협업 및 버전 관리 (Collaboration & Sync) - **진행 중**
 
 실시간으로 함께 쓰고, 변화를 추적하는 기능을 구현합니다.
 
-- [ ] Yjs 기반 실시간 동시 편집 서버(Hocuspocus) 연동
-- [ ] 사용자 커서 위치 표시 및 편집 권한(RBAC) 시스템 적용
+- [x] Yjs 기반 실시간 동시 편집 서버(Hocuspocus) 연동
+- [ ] 사용자 커서 위치 표시 및 편집 권한(RBAC) 시스템 적용 (데이터 로깅 완료, 시각화 진행 중)
 - [ ] XML 텍스트 기반의 문서 자동 저장 및 스냅샷 버전 관리 시스템
 - [ ] 문서 내 로컬 검색 및 전역 키워드 검색 엔진 구축
 

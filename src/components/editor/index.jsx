@@ -5,10 +5,10 @@ import Quill from "quill";
 import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import "quill/dist/quill.snow.css";
-// Removed imports for quill-better-table (and its CSS)
-// Removed imports for quill-delta-to-markdown
 
 const QuillEditor = () => {
+  console.log("QuillEditor rendering..."); // Debug: Confirm component is rendering
+
   const [quillContainer, setQuillContainer] = useState(null);
   const quillToolbarRef = useRef(null);
   const [quill, setQuill] = useState(null);
@@ -16,6 +16,7 @@ const QuillEditor = () => {
   const [provider, setProvider] = useState(null);
 
   const quillContainerCallbackRef = useCallback((node) => {
+    console.log("Callback ref fired. node:", node); // Debug: Confirm ref callback invocation
     if (node !== null) {
       setQuillContainer(node);
     }
@@ -26,15 +27,21 @@ const QuillEditor = () => {
     let newYdoc;
     let newProvider;
     let yQuillBinding;
-    const remoteCursorElements = new Map(); // Map to store remote cursor DOM elements
+    const remoteCursorElements = new Map();
+
+    console.log("useEffect running. quillContainer:", quillContainer); // Debug
 
     if (typeof window !== "undefined" && quillContainer && !quill) {
+      console.log("Initializing Quill on container:", quillContainer); // Debug
+
       newYdoc = new Y.Doc();
+      console.log("Y.Doc created:", newYdoc); // Debug
       newProvider = new HocuspocusProvider({
         url: "ws://127.0.0.1:1234",
         name: "test-document",
         document: newYdoc,
       });
+      console.log("HocuspocusProvider created:", newProvider); // Debug
 
       const localUserName = `User ${Math.floor(Math.random() * 1000)}`;
       const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
@@ -44,8 +51,8 @@ const QuillEditor = () => {
         color: localUserColor,
       });
 
-      // Listen to awareness updates
       newProvider.awareness.on("update", (update, origin) => {
+        console.log('Awareness update received:', { update, origin }); // Debug
         const states = newProvider.awareness.getStates();
         const activeClientIDs = new Set();
 
@@ -53,55 +60,11 @@ const QuillEditor = () => {
           activeClientIDs.add(clientID);
 
           if (clientID !== newProvider.document.clientID && state.user && state.cursor) {
-            let cursorElement = remoteCursorElements.get(clientID);
-            const bounds = quillInstance.getBounds(state.cursor.anchor);
-
-            if (!cursorElement) {
-              cursorElement = document.createElement('div');
-              cursorElement.className = 'remote-cursor-indicator';
-              cursorElement.style.position = 'absolute';
-              cursorElement.style.width = '2px';
-              cursorElement.style.backgroundColor = state.user.color;
-              cursorElement.style.zIndex = '9999';
-              cursorElement.style.pointerEvents = 'none';
-
-              const nameTag = document.createElement('div');
-              nameTag.className = 'remote-cursor-name-tag';
-              nameTag.style.position = 'absolute';
-              nameTag.style.whiteSpace = 'nowrap';
-              nameTag.style.fontSize = '10px';
-              nameTag.style.padding = '2px 4px';
-              nameTag.style.borderRadius = '3px';
-              nameTag.style.backgroundColor = state.user.color;
-              nameTag.style.color = 'white';
-              nameTag.style.left = '-2px';
-              nameTag.style.top = '-12px';
-              nameTag.textContent = state.user.name;
-
-              cursorElement.appendChild(nameTag);
-              quillInstance.root.appendChild(cursorElement);
-              remoteCursorElements.set(clientID, cursorElement);
-            }
-
-            cursorElement.style.left = `${bounds.left}px`;
-            cursorElement.style.top = `${bounds.top}px`;
-            cursorElement.style.height = `${bounds.height}px`;
-
-          } else if (clientID !== newProvider.document.clientID && !state.cursor) {
-            const existingCursor = remoteCursorElements.get(clientID);
-            if (existingCursor) {
-              existingCursor.remove();
-              remoteCursorElements.delete(clientID);
-            }
+            // Re-added remote cursor logging for debugging purposes
+            console.log(`Remote user ${state.user.name} (ID: ${clientID}) at cursor:`, state.cursor);
           }
         });
-
-        remoteCursorElements.forEach((element, clientID) => {
-          if (!activeClientIDs.has(clientID) || !states.get(clientID).cursor) {
-            element.remove();
-            remoteCursorElements.delete(clientID);
-          }
-        });
+        // No visual cursor implementation, just logging
       });
 
 
@@ -110,6 +73,8 @@ const QuillEditor = () => {
         modules: {
           toolbar: {
             container: quillToolbarRef.current,
+            // Removed Markdown handler
+            // Removed image handler
           },
           history: {
             userOnly: true,
@@ -117,8 +82,8 @@ const QuillEditor = () => {
         },
         placeholder: "Start writing...",
       });
+      console.log("Quill instance created:", quillInstance); // Debug
 
-      // Listen to Quill's selection-change event to update local cursor position
       quillInstance.on("selection-change", (range, oldRange, source) => {
         if (range && source === "user") {
           newProvider.awareness.setLocalStateField("cursor", {
@@ -135,6 +100,7 @@ const QuillEditor = () => {
         newYdoc.getText("quill"),
         quillInstance,
       );
+      console.log("Quill binding created:", yQuillBinding); // Debug
 
       setYdoc(newYdoc);
       setProvider(newProvider);
@@ -151,14 +117,14 @@ const QuillEditor = () => {
       if (newProvider) {
         newProvider.destroy();
       }
-      remoteCursorElements.forEach(element => element.remove());
-      remoteCursorElements.clear();
+      // remoteCursorElements.forEach(element => element.remove()); // Re-added remote cursor cleanup for debugging
+      // remoteCursorElements.clear(); // Re-added remote cursor cleanup for debugging
     };
   }, [quillContainer]);
 
-  if (!quill) { // Reinstated loading state
-    return null;
-  }
+  // if (!quill) { // Removed loading state to force rendering
+  //   return null;
+  // }
 
   return (
     <div id="quill-editor-component" className="flex flex-col h-full">

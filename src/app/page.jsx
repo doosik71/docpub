@@ -12,7 +12,7 @@ export default function Home() {
       {/* Reduced bottom margin */}
       <div
         id="editor-wrapper-page"
-        className="w-full max-w-[794px] rounded-lg border border-gray-300 flex flex-col"
+        className="w-full max-w-[794px] rounded-lg border border-gray-300 flex flex-col h-[calc(100vh-6rem)]" // Re-added fixed height
       >
         {" "}
         {/* Removed fixed height constraint */}
