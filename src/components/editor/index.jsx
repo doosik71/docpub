@@ -39,7 +39,7 @@ const QuillEditor = forwardRef(
         // Clear the container before initializing a new Quill instance
         quillContainerRef.current.innerHTML = "";
 
-        const documentNameToUse = docId || "current"; // Use provided docId or default to 'current'
+        const documentNameToUse = docId || "index"; // Use provided docId or default to 'index'
         console.log("Initializing Quill for document:", documentNameToUse);
 
         const newYdoc = new Y.Doc();

@@ -10,7 +10,7 @@ import http from 'http'; // Import http
 // ... existing imports ...
 import { WebSocketServer } from 'ws'; // Import WebSocketServer for signaling
 
-let globalActiveDocumentId = 'test-document'; // Global state for the active document ID
+let globalActiveDocumentId = 'index'; // Global state for the active document ID
 
 // WebSocket server for signaling global active document ID changes
 const signalingPort = 1236;
