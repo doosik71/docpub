@@ -64,18 +64,15 @@ const SearchDocumentPopup = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
-      <div
-        ref={popupRef}
-        className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl relative max-h-[90vh] overflow-y-auto"
-      >
-        <h2 className="text-xl font-bold mb-4">Search Documents</h2>
+    <div className="search-popup-overlay">
+      <div ref={popupRef} className="search-popup-content">
+        <h2 className="search-popup-title">Search Documents</h2>
 
-        <div className="flex mb-4">
+        <div className="search-input-container">
           <input
             type="text"
             placeholder="Search by title..."
-            className="flex-grow p-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="search-input-field"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => {
@@ -84,10 +81,10 @@ const SearchDocumentPopup = ({ isOpen, onClose }) => {
           />
           <button
             onClick={handleSearch}
-            className="bg-blue-500 text-white p-2 rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="search-button"
           >
             <svg
-              className="h-6 w-6"
+              className="search-button-icon"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -103,30 +100,30 @@ const SearchDocumentPopup = ({ isOpen, onClose }) => {
         </div>
 
         {loading && <p>Searching...</p>}
-        {error && <p className="text-red-500">{error}</p>}
+        {error && <p className="error-message">{error}</p>}
 
         {!loading && searchResults.length === 0 && searchQuery.trim() && !error && (
           <p>No documents found matching your query.</p>
         )}
         {!loading && searchResults.length > 0 && (
-          <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-2">Search Results:</h3>
-            <ul className="border border-gray-200 rounded-md divide-y divide-gray-200">
+          <div className="search-results-container">
+            <h3 className="search-results-heading">Search Results:</h3>
+            <ul className="search-results-list">
               {searchResults.map((doc) => (
                 <li
                   key={doc.id}
-                  className="p-3 flex justify-between items-center hover:bg-gray-50"
+                  className="search-result-item"
                 >
                   <div>
-                    <p className="font-medium">{doc.title}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="search-result-title">{doc.title}</p>
+                    <p className="search-result-meta">
                       Saved by {doc.saved_by} at{" "}
                       {new Date(doc.saved_at).toLocaleString()}
                     </p>
                   </div>
                   <button
                     onClick={() => handleOpenDocumentInNewTab(doc.id)}
-                    className="bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="search-result-open-button"
                   >
                     Open
                   </button>
@@ -136,10 +133,7 @@ const SearchDocumentPopup = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-        >
+        <button onClick={onClose} className="search-popup-close-button">
           &times;
         </button>
       </div>

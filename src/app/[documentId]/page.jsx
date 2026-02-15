@@ -307,14 +307,14 @@ export default function DocumentPage({ params }) {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center py-4 px-4">
-      <div className="w-full max-w-[794px] flex justify-between items-center">
+    <main className="main-layout">
+      <div className="header-container">
         {isEditingTitle ? (
           <input
             id="title-input"
             ref={titleInputRef}
             type="text"
-            className="text-4xl font-bold bg-transparent border-b-2 border-blue-500 outline-none"
+            className="title-input"
             value={documentTitle}
             onChange={handleTitleChange}
             onBlur={handleTitleBlur}
@@ -323,20 +323,20 @@ export default function DocumentPage({ params }) {
           />
         ) : (
           <h1
-            className="text-4xl font-bold cursor-pointer"
+            className="document-title"
             onClick={handleTitleClick}
           >
             {documentTitle}
           </h1>
         )}
-        <div className="flex items-center space-x-2">
+        <div className="header-buttons-container">
           <button
             onClick={handleSearchClick}
-            className="p-2 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            className="header-button"
             aria-label="Search Document"
           >
             <svg
-              className="h-6 w-6"
+              className="header-button-icon"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -351,11 +351,11 @@ export default function DocumentPage({ params }) {
           </button>
           <button
             onClick={handleNewDocument}
-            className="p-2 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            className="header-button"
             aria-label="New Document"
           >
             <svg
-              className="h-6 w-6"
+              className="header-button-icon"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -370,11 +370,11 @@ export default function DocumentPage({ params }) {
           </button>
           <button
             onClick={handleOpenDocument}
-            className="p-2 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            className="header-button"
             aria-label="Open Document"
           >
             <svg
-              className="h-6 w-6"
+              className="header-button-icon"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -389,11 +389,11 @@ export default function DocumentPage({ params }) {
           </button>
           <button
             onClick={handleSaveDocument}
-            className="p-2 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            className="header-button"
             aria-label="Save Document"
           >
             <svg
-              className="h-6 w-6"
+              className="header-button-icon"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -409,10 +409,10 @@ export default function DocumentPage({ params }) {
           <button
             id="menu-button"
             onClick={handleMenuToggle}
-            className="p-2 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            className="header-button"
           >
             <svg
-              className="h-6 w-6"
+              className="header-button-icon"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -430,7 +430,6 @@ export default function DocumentPage({ params }) {
       {/* Reduced bottom margin */}
       <div
         id="editor-wrapper-page"
-        className="w-full max-w-[794px] rounded-lg flex flex-col h-[calc(100vh-6rem)]" // Re-added fixed height
       >
         {" "}
         {/* Removed fixed height constraint */}
@@ -465,7 +464,7 @@ export default function DocumentPage({ params }) {
       />
 
       {saveMessage && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50">
+        <div className="save-message">
           {saveMessage}
         </div>
       )}

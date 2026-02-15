@@ -91,54 +91,51 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
-      <div
-        ref={popupRef}
-        className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl relative max-h-[90vh] overflow-y-auto"
-      >
-        <h2 className="text-xl font-bold mb-4">Open Document</h2>
+    <div className="document-list-popup-overlay">
+      <div ref={popupRef} className="document-list-popup-content">
+        <h2 className="document-list-popup-title">Open Document</h2>
 
-        <div className="mb-4">
+        <div className="document-list-filter-container">
           <input
             type="text"
             placeholder="Filter by title..."
-            className="w-full p-2 border border-gray-300 rounded-md"
+            className="document-list-filter-input"
             value={filter}
             onChange={handleFilterChange}
             onKeyUp={fetchDocuments} // Fetch on key up for filtering
           />
         </div>
 
-        {loading && <p>Loading documents...</p>}
-        {error && <p className="text-red-500">{error}</p>}
+        {loading && <p className="document-list-message">Loading documents...</p>}
+        {error && <p className="document-list-error-message">{error}</p>}
 
         {!loading && documents.length === 0 && !error && (
-          <p>No documents found.</p>
+          <p className="document-list-message">No documents found.</p>
         )}
 
         {!loading && documents.length > 0 && (
-          <table className="min-w-full bg-white">
+          <table className="document-list-table">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b">Title</th>
-                <th className="py-2 px-4 border-b">Saved At</th>
-                <th className="py-2 px-4 border-b">Saved By</th>
-                <th className="py-2 px-4 border-b text-right">Actions</th>
+                <th className="document-list-th">Title</th>
+                <th className="document-list-th">Saved At</th>
+                <th className="document-list-th">Saved By</th>
+                <th className="document-list-th document-list-th-actions">Actions</th>
               </tr>
             </thead>
             <tbody>
               {documents.map((doc) => (
                 <tr key={doc.id}>
-                  <td className="py-2 px-4 border-b">{doc.title}</td>
-                  <td className="py-2 px-4 border-b">
+                  <td className="document-list-td">{doc.title}</td>
+                  <td className="document-list-td">
                     {new Date(doc.saved_at).toLocaleString()}
                   </td>
-                  <td className="py-2 px-4 border-b">{doc.saved_by}</td>
-                  <td className="py-2 px-4 border-b text-right space-x-2">
+                  <td className="document-list-td">{doc.saved_by}</td>
+                  <td className="document-list-td document-list-td-actions">
                     <button
                       id="load-button"
                       onClick={() => handleLoadClick(doc.id)}
-                      className="bg-blue-500 text-white py-0 px-2 rounded-md hover:bg-blue-600 text-sm"
+                      className="document-list-load-button"
                     >
                       ⇪
                     </button>
@@ -146,7 +143,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
                       <button
                         id="delete-button"
                         onClick={() => handleDeleteClick(doc.id, doc.title)}
-                        className="bg-red-500 text-white py-0 px-2 rounded-md hover:bg-red-600 text-sm"
+                        className="document-list-delete-button"
                       >
                         🗑
                       </button>
@@ -158,10 +155,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
           </table>
         )}
 
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-        >
+        <button onClick={onClose} className="document-list-close-button">
           &times;
         </button>
       </div>
