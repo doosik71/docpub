@@ -3,7 +3,15 @@
 import React, { useRef, useEffect, useState } from "react";
 import { themes } from "@/lib/themes"; // Import themes
 
-const MenuPopup = ({ isOpen, onClose, userName, setUserName, theme, setTheme }) => {
+const MenuPopup = ({
+  isOpen,
+  onClose,
+  userName,
+  setUserName,
+  theme,
+  setTheme,
+  onDownloadMarkdown,
+}) => {
   const popupRef = useRef(null);
   const [currentUserNameInput, setCurrentUserNameInput] = useState(userName);
 
@@ -49,10 +57,10 @@ const MenuPopup = ({ isOpen, onClose, userName, setUserName, theme, setTheme }) 
   return (
     <div className="menu-popup-overlay">
       <div ref={popupRef} className="menu-popup-content">
-        <h2 className="menu-popup-title">Menu</h2>
-
         <div className="menu-section">
-          <label htmlFor="userName" className="menu-label">User Name</label>
+          <label htmlFor="userName" className="menu-label">
+            User Name
+          </label>
           <input
             type="text"
             id="userName"
@@ -60,10 +68,7 @@ const MenuPopup = ({ isOpen, onClose, userName, setUserName, theme, setTheme }) 
             value={currentUserNameInput}
             onChange={(e) => setCurrentUserNameInput(e.target.value)}
           />
-          <button
-            onClick={handleSaveUserName}
-            className="menu-save-button"
-          >
+          <button onClick={handleSaveUserName} className="menu-save-button">
             Save User Name
           </button>
         </div>
@@ -84,8 +89,8 @@ const MenuPopup = ({ isOpen, onClose, userName, setUserName, theme, setTheme }) 
                 <span
                   className="theme-option-display"
                   style={{
-                    backgroundColor: t.colors['--background'],
-                    color: t.colors['--foreground'],
+                    backgroundColor: t.colors["--background"],
+                    color: t.colors["--foreground"],
                   }}
                 >
                   {t.name}
@@ -94,7 +99,12 @@ const MenuPopup = ({ isOpen, onClose, userName, setUserName, theme, setTheme }) 
             ))}
           </div>
         </div>
-
+        <div className="menu-section">
+          <label className="menu-label">Export</label>
+          <button onClick={onDownloadMarkdown} className="menu-save-button">
+            Download as Markdown (.md)
+          </button>
+        </div>
         <button onClick={onClose} className="menu-popup-close-button">
           &times;
         </button>

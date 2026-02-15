@@ -98,8 +98,15 @@ main div.ql-editor h1,
 main div.ql-editor h2,
 main div.ql-editor h3,
 main div.ql-editor h4 {
-  margin-top: 1em;
+  margin-top: 0.5em;
   margin-bottom: 0.5em;
+}
+
+main div.ql-editor h1:first-child,
+main div.ql-editor h2:first-child,
+main div.ql-editor h3:first-child,
+main div.ql-editor h4:first-child {
+  margin-top: 0;
 }
 
 main div.ql-editor p,
@@ -112,6 +119,16 @@ main div.ql-editor ul {
 main div.ql-editor ol,
 main div.ql-editor ul {
   padding-left: 0em;
+}
+
+main .ql-snow div.ql-editor code {
+  font-size: 100%;
+}
+
+main.main-layout div.ql-editor blockquote {
+  margin: 0;
+  padding-top: 1px;
+  padding-bottom: 1px;
 }
 
 main div.ql-editor li.ql-indent-1:not(.ql-direction-rtl) {
@@ -177,17 +194,20 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
     overflow: visible !important;
   }
 
+  main.main-layout {
+    max-width: none;
+  }
+
   h1,
   h2 {
     page-break-after: avoid;
     page-break-inside: avoid;
   }
 
-  h1 {
-    display: none !important;
-  }
   #quill-toolbar,
-  .ql-toolbar {
+  .ql-toolbar,
+  .document-header-row {
+    /* Hide document-header-row in print preview */
     display: none !important;
   }
   #editor-wrapper-page,
@@ -206,6 +226,7 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
   }
   #editor-wrapper-page {
     border: none !important;
+    margin-top: 0 !important; /* Remove top margin for print */
   }
   #quill-editor-component {
     border: none !important;
@@ -637,7 +658,7 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
 
 .menu-popup-content {
   background-color: #ffffff; /* bg-white */
-  padding: 1.5rem; /* p-6 */
+  padding: 2.5rem 1.5rem 1.5rem; /* p-6 */
   border-radius: 0.5rem; /* rounded-lg */
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
@@ -650,8 +671,17 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
 /* Theme Options Container */
 .theme-options-container {
   display: flex; /* Assuming it's a flex container for gap to work */
-  gap: 0.5em;
+  row-gap: 0.3em;
   flex-wrap: wrap; /* Allow items to wrap if needed */
+}
+
+/* Theme Option Label */
+.theme-option-label {
+  width: 6em;
+  display: flex; /* To center content horizontally */
+  justify-content: left;
+  align-items: center;
+  /* Add other styling for the label if needed, e.g., border, padding */
 }
 
 .menu-popup-title {

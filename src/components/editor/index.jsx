@@ -10,6 +10,9 @@ import Quill from "quill";
 import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import "quill/dist/quill.snow.css";
+import "katex/dist/katex.min.css"; // Import KaTeX CSS
+import katex from "katex"; // Import katex
+import "quill-katex"; // Import quill-katex
 
 // Import table module components and CSS
 import TableHandler, { rewirteFormats } from "quill1.3.7-table-module";
@@ -18,6 +21,8 @@ import "quill1.3.7-table-module/dist/index.css";
 // Register table module
 Quill.register({ [`modules/${TableHandler.moduleName}`]: TableHandler }, true);
 rewirteFormats(); // Rewrite native formats for table compatibility
+
+window.katex = katex; // Make katex available to quill-katex globally
 
 const QuillEditor = forwardRef(
   (
@@ -57,10 +62,7 @@ const QuillEditor = forwardRef(
           try {
             Y.applyUpdate(newYdoc, initialYDocState);
           } catch (e) {
-            console.error(
-              "[Editor Init] Failed to apply initialYDocState:",
-              e,
-            );
+            console.error("[Editor Init] Failed to apply initialYDocState:", e);
           }
         }
 
@@ -120,6 +122,7 @@ const QuillEditor = forwardRef(
                 },
               },
             },
+            formula: true, // Add formula module
             history: { userOnly: true },
             [TableHandler.moduleName]: {
               fullWidth: true,
@@ -263,10 +266,12 @@ const QuillEditor = forwardRef(
           <button className="ql-list" value="ordered"></button>
           <button className="ql-list" value="bullet"></button>
           <button className="ql-blockquote"></button>
+          <button className="ql-code"></button>
           <button className="ql-code-block"></button>
           <button className="ql-link"></button>
           <button className="ql-image"></button>
           <button className="ql-video"></button>
+          <button className="ql-formula"></button>
           <button className="ql-caption">
             <svg
               viewBox="0 0 24 24"
@@ -287,10 +292,7 @@ const QuillEditor = forwardRef(
           {/* Custom Table button */}
           <button className="ql-clean"></button>
         </div>
-        <div
-          id="quill-container"
-          ref={quillContainerCallbackRef}
-        ></div>
+        <div id="quill-container" ref={quillContainerCallbackRef}></div>
       </div>
     );
   },

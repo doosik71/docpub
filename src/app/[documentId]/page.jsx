@@ -8,6 +8,7 @@ import SearchDocumentPopup from "../../components/search-document-popup";
 import NewDocumentPopup from "../../components/new-document-popup";
 import { themes } from "../../lib/themes";
 import { useRouter } from "next/navigation";
+import converter from "@workiom/delta-md-converter";
 
 const DynamicQuillEditor = dynamic(
   () => import("../../components/editor/index.jsx"),
@@ -179,6 +180,24 @@ export default function DocumentPage({ params }) {
         setSaveMessage(`Document saved successfully with ID: ${result.id}`);
       } catch (error) {
         setSaveMessage("Failed to save document!");
+      }
+    }
+  };
+
+  const handleDownloadMarkdown = () => {
+    if (editorRef.current) {
+      const ydoc = editorRef.current.getYdoc();
+
+      if (ydoc) {
+        const deltaOps = ydoc.getText("quill").toDelta();
+        const markdown = converter.deltaToMarkdown(deltaOps);
+        const blob = new Blob([markdown], { type: "text/markdown" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${documentTitle || "document"}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
       }
     }
   };
@@ -363,6 +382,7 @@ export default function DocumentPage({ params }) {
         setUserName={setUserName}
         theme={theme}
         setTheme={setTheme}
+        onDownloadMarkdown={handleDownloadMarkdown}
       />
       <DocumentListPopup
         isOpen={isDocumentListOpen}
