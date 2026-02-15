@@ -39,7 +39,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:1234/api/documents?title=${currentFilter}`,
+        `/api/documents?title=${currentFilter}`,
       );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -64,7 +64,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
 
   const handleLoadClick = (documentId) => {
     onLoadDocument(documentId);
-    onClose();
+    // onClose();
   };
 
   const handleDeleteClick = async (documentId, documentTitle) => {
@@ -106,7 +106,9 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
           />
         </div>
 
-        {loading && <p className="document-list-message">Loading documents...</p>}
+        {loading && (
+          <p className="document-list-message">Loading documents...</p>
+        )}
         {error && <p className="document-list-error-message">{error}</p>}
 
         {!loading && documents.length === 0 && !error && (
@@ -120,7 +122,9 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
                 <th className="document-list-th">Title</th>
                 <th className="document-list-th">Saved At</th>
                 <th className="document-list-th">Saved By</th>
-                <th className="document-list-th document-list-th-actions">Actions</th>
+                <th className="document-list-th document-list-th-actions">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -139,15 +143,14 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
                     >
                       ⇪
                     </button>
-                    {doc.id !== 'index' && ( // Conditional rendering for delete button
-                      <button
-                        id="delete-button"
-                        onClick={() => handleDeleteClick(doc.id, doc.title)}
-                        className="document-list-delete-button"
-                      >
-                        🗑
-                      </button>
-                    )}
+                    <button
+                      id="delete-button"
+                      onClick={() => handleDeleteClick(doc.id, doc.title)}
+                      className="document-list-delete-button"
+                      disabled={doc.id === "index"} // Disable if doc.id is "index"
+                    >
+                      🗑
+                    </button>
                   </td>
                 </tr>
               ))}

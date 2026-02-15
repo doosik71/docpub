@@ -20,13 +20,16 @@ Quill.register({ [`modules/${TableHandler.moduleName}`]: TableHandler }, true);
 rewirteFormats(); // Rewrite native formats for table compatibility
 
 const QuillEditor = forwardRef(
-  ({
-    userName,
-    editorRefProp,
-    onMetadataUpdateProp,
-    activeDocumentId,
-    initialYDocState,
-  }) => {
+  (
+    {
+      userName,
+      editorRefProp,
+      onMetadataUpdateProp,
+      activeDocumentId,
+      initialYDocState,
+    },
+    ref,
+  ) => {
     // Removed activeDocumentId, initialYDocStateProp
     const [quillContainerNode, setQuillContainerNode] = useState(null); // Use state to hold the container DOM node
     const [quill, setQuill] = useState(null);
@@ -47,30 +50,28 @@ const QuillEditor = forwardRef(
           return;
         }
 
-        // Clear the container before initializing a new Quill instance
-        quillContainerElement.innerHTML = "";
-
         const documentNameToUse = docId || "index"; // Use provided docId or default to 'index'
-        console.log("Initializing Quill for document:", documentNameToUse);
 
         const newYdoc = new Y.Doc();
         if (initialYDocState) {
-          Y.applyUpdate(newYdoc, initialYDocState);
-          console.log("[QuillEditor] Applied initialYDocState to newYdoc.");
+          try {
+            Y.applyUpdate(newYdoc, initialYDocState);
+          } catch (e) {
+            console.error(
+              "[Editor Init] Failed to apply initialYDocState:",
+              e,
+            );
+          }
         }
-        // initialYDocState is no longer used here; applyYDocUpdate will be used after load.
 
         const metadata = newYdoc.getMap("metadata");
-        // Initialize metadata with defaults if not present
         if (!metadata.get("title")) {
-          metadata.set("title", "DocPub"); // Set default title if not already present
+          metadata.set("title", "DocPub");
         }
         if (!metadata.get("saved_at")) {
-          // Only set saved_at if it's truly a new document without existing timestamp
           metadata.set("saved_at", new Date().toISOString());
         }
 
-        // Observe metadata changes and trigger callback
         const metadataObserver = () => {
           if (onMetadataUpdate) {
             onMetadataUpdate({
@@ -80,89 +81,49 @@ const QuillEditor = forwardRef(
           }
         };
         metadata.observe(metadataObserver);
-        metadataObserver(); // Manually trigger once to set initial title in parent
+        metadataObserver();
 
         const newProvider = new HocuspocusProvider({
           url: "ws://127.0.0.1:1235",
-          name: documentNameToUse, // Use documentNameToUse here
+          name: documentNameToUse,
           document: newYdoc,
-          // Add connection status logging
-          onStatus: ({ status }) => {
-            console.log(`[HocuspocusProvider] Connection status: ${status}`);
-          },
-          onOpen: () => {
-            console.log("[HocuspocusProvider] Connection opened.");
-          },
-          onClose: () => {
-            console.log("[HocuspocusProvider] Connection closed.");
-          },
-          onDestroy: () => {
-            console.log("[HocuspocusProvider] Connection destroyed.");
-          },
-        });
-
-        newProvider.on("synced", (isSynced) => {
-          console.log(
-            `[HocuspocusProvider] Document ${documentNameToUse} synced: ${isSynced}`,
-          );
         });
 
         const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-
         newProvider.awareness.setLocalStateField("user", {
           name: userName,
           color: localUserColor,
         });
 
-        newProvider.awareness.on("update", (update, origin) => {
-          const states = newProvider.awareness.getStates();
-          states.forEach((state, clientID) => {
-            if (
-              clientID !== newProvider.document.clientID &&
-              state.user &&
-              state.cursor
-            ) {
-              // console.log(`Remote user ${state.user.name} (ID: ${clientID}) at cursor:`, state.cursor);
-            }
-          });
-        });
+        if (!quillContainerElement) {
+          return;
+        }
 
         const quillInstance = new Quill(quillContainerElement, {
           theme: "snow",
           modules: {
             toolbar: {
-              container: "#quill-toolbar", // Point to the HTML element by ID
+              container: "#quill-toolbar",
               handlers: {
                 caption: function (value) {
                   const quill = this.quill;
                   const range = quill.getSelection(true);
                   if (range) {
-                    // Apply bold
-                    quill.format(
-                      "bold",
-                      !quill.getFormat(range)["bold"],
-                      Quill.sources.USER,
-                    );
-                    // Apply center alignment
+                    quill.format("bold", !quill.getFormat(range)["bold"]);
                     quill.format(
                       "align",
                       quill.getFormat(range)["align"] === "center"
                         ? false
                         : "center",
-                      Quill.sources.USER,
                     );
                   }
                 },
               },
             },
-            history: {
-              userOnly: true,
-            },
+            history: { userOnly: true },
             [TableHandler.moduleName]: {
-              // Configure the table module
               fullWidth: true,
-              customButton: "Insert", // This is just a label
-              // customSelect: TableHandler.customSelect, // Use customSelect from module for the drag/select UI
+              customButton: "Insert",
             },
           },
           placeholder: "Start writing...",
@@ -172,7 +133,7 @@ const QuillEditor = forwardRef(
         const yQuillBinding = new yQuillModule.QuillBinding(
           newYdoc.getText("quill"),
           quillInstance,
-          newProvider.awareness, // Pass awareness for cursors
+          newProvider.awareness,
         );
 
         setYdoc(newYdoc);
@@ -180,42 +141,40 @@ const QuillEditor = forwardRef(
         setQuill(quillInstance);
 
         return () => {
-          console.log(
-            "Cleaning up Hocuspocus and Quill for document:",
-            documentNameToUse,
-          );
-          metadata.unobserve(metadataObserver); // Cleanup metadata observer
+          metadata.unobserve(metadataObserver);
           yQuillBinding.destroy();
           newProvider.destroy();
-          // quillInstance.destroy(); // Destroy Quill instance to prevent memory leaks - NOT A FUNCTION
           setYdoc(null);
           setProvider(null);
           setQuill(null);
-          // setCurrentDocumentName(null); // No longer needed as currentDocumentName state is removed
         };
       },
-      [userName, onMetadataUpdateProp, activeDocumentId, quillContainerNode], // Use quillContainerNode instead of quillContainerRef
+      [userName, onMetadataUpdateProp],
     );
 
     // Initial load and cleanup
     useEffect(() => {
       if (!quillContainerNode) {
-        // Ensure node state is available before initializing
         return;
       }
       const cleanup = initializeQuillAndHocuspocus(
         onMetadataUpdateProp,
         activeDocumentId,
-        initialYDocState, // Pass initialYDocState
-        quillContainerNode, // Pass the DOM node directly
+        initialYDocState,
+        quillContainerNode,
       );
-      return cleanup;
+
+      return () => {
+        if (cleanup) {
+          cleanup();
+        }
+      };
     }, [
-      initializeQuillAndHocuspocus,
-      onMetadataUpdateProp,
+      quillContainerNode,
       activeDocumentId,
       initialYDocState,
-      quillContainerNode, // Now, quillContainerNode is a state, and causes re-render
+      onMetadataUpdateProp,
+      initializeQuillAndHocuspocus,
     ]);
 
     // Effect to update awareness when userName changes
@@ -234,14 +193,9 @@ const QuillEditor = forwardRef(
     useEffect(() => {
       if (quill && ydoc) {
         const handler = (delta, oldDelta, source) => {
-          // Only update if change was from user interaction
           if (source === "user") {
             const metadata = ydoc.getMap("metadata");
             metadata.set("saved_at", new Date().toISOString());
-            // console.log(
-            //   "[QuillEditor] Metadata updated: saved_at",
-            //   metadata.get("saved_at"),
-            // );
           }
         };
         quill.on("text-change", handler);
@@ -252,43 +206,38 @@ const QuillEditor = forwardRef(
     }, [quill, ydoc]);
 
     // Expose methods and states to parent component
-    useImperativeHandle(editorRefProp, () => {
-      // Use editorRefProp here
-      const exposed = {
+    useImperativeHandle(
+      editorRefProp,
+      () => ({
         handlePrint: () => {
           if (typeof window !== "undefined") {
             window.print();
           }
         },
-        getYdoc: () => ydoc, // Expose ydoc
-        // Removed currentDocumentName and loadDocument as document loading is now driven by activeDocumentId prop
-        getContents: () => quill?.getContents(), // Expose getContents
-        setContents: (delta) => quill?.setContents(delta), // Expose setContents
-        getDocumentTitle: () => ydoc?.getMap("metadata").get("title"), // Expose document title from metadata
+        getYdoc: () => ydoc,
+        getContents: () => quill?.getContents(),
+        setContents: (delta) => quill?.setContents(delta),
+        getDocumentTitle: () => ydoc?.getMap("metadata").get("title"),
         setDocumentTitle: (newTitle) => {
           if (ydoc) {
             ydoc.getMap("metadata").set("title", newTitle);
-            console.log("[QuillEditor] Document title set to:", newTitle);
           }
         },
         getBinaryYDocState: () => {
-          // New method to get Y.Doc's binary state
           if (ydoc) {
             return Y.encodeStateAsUpdate(ydoc);
           }
           return null;
         },
         applyYDocUpdate: (binaryState) => {
-          // New method to apply binary state to Y.Doc
           if (ydoc && binaryState) {
             Y.applyUpdate(ydoc, binaryState);
-            console.log("[QuillEditor] Applied Y.Doc binary update.");
           }
         },
-      };
-      // console.log("QuillEditor: useImperativeHandle exposing:", exposed); // ADD THIS LINE
-      return exposed;
-    });
+      }),
+      [quill, ydoc],
+    );
+
     return (
       <div id="quill-editor-component">
         {/* Toolbar div */}
@@ -346,5 +295,7 @@ const QuillEditor = forwardRef(
     );
   },
 );
+
+QuillEditor.displayName = "QuillEditor";
 
 export default QuillEditor;

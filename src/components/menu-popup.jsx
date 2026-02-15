@@ -42,7 +42,6 @@ const MenuPopup = ({ isOpen, onClose, userName, setUserName, theme, setTheme }) 
 
   const handleThemeChange = (newThemeId) => {
     setTheme(newThemeId);
-    onClose();
   };
 
   if (!isOpen) return null;

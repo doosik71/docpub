@@ -120,6 +120,7 @@ const server = new Server({
     console.log('Client disconnected.');
   },
 });
+/*
 app.get('/api/documents', async (req, res) => {
   console.log('API: GET /api/documents endpoint hit.'); // Debug log
   const documentsDir = path.join(__dirname, '../../documents');
@@ -202,7 +203,7 @@ app.delete('/api/documents/:id', async (req, res) => {
     }
   }
 });
-
+*/
 const PORT = process.env.PORT || 1234;
 
 httpServer.listen(PORT, () => {

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "cross-env NEXT_TEST_DISABLE_TURBOPACK=1 npx next dev",
-    "build": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "server": "node src/server/collaboration.js"
