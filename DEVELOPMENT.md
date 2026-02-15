@@ -8,7 +8,7 @@
 
 - **Node.js**: v18.x 이상 (LTS 권장)
 - **Package Manager**: `npm` 또는 `pnpm` (속도와 효율성을 위해 `pnpm` 권장)
-- **Redis**: 실시간 협업 세션 및 캐싱 (선택 사항)
+- **Hocuspocus Server**: 실시간 협업 서버 (자동으로 시작됨)
 
 ## 2. 로컬 서버 실행 (Getting Started)
 
@@ -28,20 +28,15 @@ pnpm install
 cp .env.example .env.local
 ```
 
-- `DATABASE_URL`: PostgreSQL 접속 주소
-- `NEXTAUTH_SECRET`: 보안 인증 키
-- `OPENAI_API_KEY`: AI 기능 테스트용 API 키
+- `GEMINI_API_KEY`: AI 기능 테스트용 API 키
 
-### 2.3 데이터베이스 마이그레이션
+### 2.3 개발 서버 실행
 
-```bash
-pnpm prisma db push  # Prisma 사용 시
-```
-
-### 2.4 개발 서버 실행
+`docpub`은 프론트엔드(Next.js), Hocuspocus 협업 서버, 그리고 Express 기반 문서 API 서버로 구성됩니다.
 
 ```bash
-pnpm dev
+pnpm dev # Next.js 개발 서버 (프론트엔드 및 API 라우트)
+npm run server # Hocuspocus 협업 서버 및 Express API (src/server/collaboration.js)
 ```
 
 이제 `http://localhost:3000`에서 에디터를 확인할 수 있습니다.
@@ -50,30 +45,19 @@ pnpm dev
 
 ## 3. 핵심 기술 구현 가이드
 
-### 3.1 XML Schema & Tiptap Extension 매핑
+### 3.1 Quill Editor 및 Y.Doc 구조
 
-`docpub`은 JATS XML 구조를 따르므로, 새로운 노드를 추가할 때는 `src/core/extensions` 내에 정의합니다.
+`docpub`은 Quill Editor를 사용하여 WYSIWYG 편집을 제공하며, 모든 문서 상태는 Yjs의 `Y.Doc` 형태로 관리됩니다. Y.Doc은 Quill Editor와 `y-quill` 바인딩을 통해 실시간으로 동기화됩니다.
 
 ```javascript
-// 예시: JATS <sec> 태그 매핑 노드
-import { Node } from "@tiptap/core";
-
-export const Section = Node.create({
-  name: "section",
-  group: "block",
-  content: "heading block*",
-  parseHTML() {
-    return [{ tag: "sec" }];
-  },
-  renderHTML({ HTMLAttributes }) {
-    return ["sec", HTMLAttributes, 0];
-  },
-});
+// 예시: Y.Doc에서 Quill 델타 접근
+const ydoc = editorRef.current.getYdoc();
+const quillContent = ydoc.getText("quill"); // Quill 델타 데이터
 ```
 
 ### 3.2 실시간 협업 (Hocuspocus 서버)
 
-협업 서버는 `src/server/collaboration.ts`에 위치합니다. Yjs 업데이트를 수신하고 이를 XML로 변환하여 파일 시스템에 주기적으로 동기화하는 로직을 포함합니다.
+Hocuspocus 서버는 `src/server/collaboration.js`에 위치합니다. 클라이언트로부터 Yjs 업데이트를 수신하고, 이를 **UUID 기반 .bin 파일**로 파일 시스템에 주기적으로 영속화하는 로직을 포함합니다. 또한, 문서 API (`/api/documents`)를 호스팅하여 문서 목록 조회, 특정 문서 로드 및 저장 기능을 제공합니다.
 
 ---
 
@@ -97,7 +81,7 @@ export const Section = Node.create({
 
 ### 5.1 유닛 테스트
 
-에디터의 XML 파싱 및 변환 로직은 `Vitest`를 사용하여 검증합니다.
+에디터의 **Quill 델타 및 Y.Doc 변환** 로직은 `Vitest`를 사용하여 검증합니다.
 
 ```bash
 pnpm test
@@ -116,7 +100,7 @@ pnpm start
 
 AI 관련 기능은 `src/ai/` 경로 내에서 관리합니다.
 
-1. **Prompt Engineering**: 각 XML 노드에 최적화된 프롬프트를 구성합니다.
+1. **Prompt Engineering**: 각 **Y.Doc 노드**에 최적화된 프롬프트를 구성합니다.
 2. **Streaming**: 사용자 경험을 위해 `Vercel AI SDK`를 통한 스트리밍 응답을 기본으로 합니다.
 3. **Safety**: 사용자 권한이 없는 문서 데이터가 AI 모델 학습에 사용되지 않도록 API 호출 시 옵션을 엄격히 관리합니다.
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
+import * as fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import * as Y from "yjs"; // Import Y
@@ -7,20 +7,20 @@ import * as Y from "yjs"; // Import Y
 export async function GET(request) {
   try {
     const documentsDir = path.join(process.cwd(), "documents");
-    await fs.mkdir(documentsDir, { recursive: true }); // Ensure directory exists
+    await fs.promises.mkdir(documentsDir, { recursive: true }); // Ensure directory exists
 
     const documentIdFromQuery = request.nextUrl.searchParams.get("id");
     if (documentIdFromQuery) {
       const filePath = path.join(documentsDir, `${documentIdFromQuery}.bin`);
       if (fs.existsSync(filePath)) {
-        const binaryState = await fs.readFile(filePath);
+        const binaryState = await fs.promises.readFile(filePath);
         return NextResponse.json({ id: documentIdFromQuery, state: binaryState.toString("base64") }, { status: 200 });
       } else {
         return NextResponse.json({ error: "Document not found" }, { status: 404 });
       }
     }
 
-    const files = await fs.readdir(documentsDir);
+    const files = await fs.promises.readdir(documentsDir);
     const documentList = [];
     const filterTitle = request.nextUrl.searchParams
       .get("title")
@@ -33,7 +33,7 @@ export async function GET(request) {
       if (file.endsWith(".bin")) {
         const docId = file.replace(".bin", "");
         const filePath = path.join(documentsDir, file);
-        const binaryState = await fs.readFile(filePath);
+        const binaryState = await fs.promises.readFile(filePath);
 
         const ydoc = new Y.Doc();
         try {
@@ -44,8 +44,11 @@ export async function GET(request) {
           const saved_at = metadata.get("saved_at") || new Date().toISOString();
           const saved_by = metadata.get("saved_by") || "Unknown";
 
-          // Apply filter if title is provided
-          if (filterTitle && !title.toLowerCase().includes(filterTitle)) {
+          const content = ydoc.getText('quill').toString(); // Get the document content
+          const contentLower = content.toLowerCase();
+
+          // Apply filter if title or content contains the filterTitle
+          if (filterTitle && !(title.toLowerCase().includes(filterTitle) || contentLower.includes(filterTitle))) {
             continue;
           }
 
@@ -100,10 +103,10 @@ export async function POST(request) {
     const documentsDir = path.join(process.cwd(), "documents"); // Assuming 'documents' is at project root
 
     // Ensure the documents directory exists
-    await fs.mkdir(documentsDir, { recursive: true });
+    await fs.promises.mkdir(documentsDir, { recursive: true });
 
     const filePath = path.join(documentsDir, `${docIdToSave}.bin`);
-    await fs.writeFile(filePath, binaryState);
+    await fs.promises.writeFile(filePath, binaryState);
 
     console.log(`Document ${docIdToSave} saved successfully.`);
     return NextResponse.json({ id: docIdToSave }, { status: 200 });

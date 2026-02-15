@@ -4,16 +4,18 @@ import dynamic from "next/dynamic";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import MenuPopup from "../../components/menu-popup";
 import DocumentListPopup from "../../components/document-list-popup"; // Import DocumentListPopup
+import SearchDocumentPopup from "../../components/search-document-popup"; // Import SearchDocumentPopup
 import { themes } from "../../lib/themes"; // Import themes
 import { v4 as uuidv4 } from "uuid"; // Import uuid
-import { useRouter } from 'next/navigation'; // Re-import useRouter
+import { useRouter } from "next/navigation"; // Re-import useRouter
 
 const DynamicQuillEditor = dynamic(
   () => import("../../components/editor/index.jsx"),
   { ssr: false },
 );
 
-export default function DocumentPage({ params }) { // Renamed from Home to DocumentPage, added params prop
+export default function DocumentPage({ params }) {
+  // Renamed from Home to DocumentPage, added params prop
   const router = useRouter(); // Initialize the router
   const { documentId: paramDocumentId } = params; // Get documentId from params
 
@@ -22,6 +24,7 @@ export default function DocumentPage({ params }) { // Renamed from Home to Docum
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDocumentListOpen, setIsDocumentListOpen] = useState(false); // New state for document list popup
+  const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false); // New state for search document popup
   const [userName, setUserName] = useState("Guest"); // Default user name
   const [theme, setTheme] = useState("light"); // Default theme ID
   const [documentTitle, setDocumentTitle] = useState("DocPub"); // New state for document title
@@ -69,6 +72,11 @@ export default function DocumentPage({ params }) { // Renamed from Home to Docum
     }
   }, [saveMessage]);
 
+  // Effect to update browser tab title
+  useEffect(() => {
+    document.title = documentTitle ? documentTitle : "DocPub";
+  }, [documentTitle]);
+
   // Effect to fetch initial document state
   useEffect(() => {
     const fetchDocumentState = async () => {
@@ -77,10 +85,20 @@ export default function DocumentPage({ params }) { // Renamed from Home to Docum
       try {
         const response = await fetch(`/api/documents?id=${currentDocumentId}`);
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          if (response.status === 404) {
+            setSaveMessage(`Starting new document: ${currentDocumentId}`);
+            setInitialEditorYDocState(null); // Explicitly set to null for a new empty document
+            console.log(
+              `Document ${currentDocumentId} not found, starting new.`,
+            );
+            return; // Exit here, no actual error to propagate
+          } else {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
         }
         const data = await response.json();
         setInitialEditorYDocState(Buffer.from(data.state, "base64"));
+        setSaveMessage(`Document ${currentDocumentId} loaded.`); // Indicate successful load
       } catch (error) {
         console.error(`Error fetching document ${currentDocumentId}:`, error);
         setSaveMessage(`Failed to load document: ${currentDocumentId}`);
@@ -131,10 +149,11 @@ export default function DocumentPage({ params }) { // Renamed from Home to Docum
               headers: {
                 "Content-Type": "application/json",
               },
-                        body: JSON.stringify({
-                          id: currentDocumentId, // Send the current document ID
-                          state: binaryState.toString("base64"), // Send binary state as base64 string
-                        }),            });
+              body: JSON.stringify({
+                id: currentDocumentId, // Send the current document ID
+                state: binaryState.toString("base64"), // Send binary state as base64 string
+              }),
+            });
 
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
@@ -246,6 +265,10 @@ export default function DocumentPage({ params }) { // Renamed from Home to Docum
     setIsDocumentListOpen(false);
   };
 
+  const handleSearchClick = () => {
+    setIsSearchPopupOpen(true);
+  };
+
   const handleLoadDocument = async (documentId) => {
     handleDocumentListClose(); // Close list first
     router.push(`/${documentId}`); // Navigate to the document's URL
@@ -307,6 +330,25 @@ export default function DocumentPage({ params }) { // Renamed from Home to Docum
           </h1>
         )}
         <div className="flex items-center space-x-2">
+          <button
+            onClick={handleSearchClick}
+            className="p-2 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            aria-label="Search Document"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </button>
           <button
             onClick={handleNewDocument}
             className="p-2 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
@@ -416,6 +458,10 @@ export default function DocumentPage({ params }) { // Renamed from Home to Docum
         isOpen={isDocumentListOpen}
         onClose={handleDocumentListClose}
         onLoadDocument={handleLoadDocument}
+      />
+      <SearchDocumentPopup
+        isOpen={isSearchPopupOpen}
+        onClose={() => setIsSearchPopupOpen(false)}
       />
 
       {saveMessage && (
