@@ -46,139 +46,121 @@ const QuillEditor = forwardRef(
       setQuillContainerNode(node); // Set the node directly to state
     }, []);
 
-    // Function to initialize Quill and HocuspocusProvider
-    const initializeQuillAndHocuspocus = useCallback(
-      (onMetadataUpdate, docId, initialYDocState, quillContainerElement) => {
-        // Added docId
-        if (typeof window === "undefined" || !quillContainerElement) {
-          // Use the passed element
-          return;
-        }
-
-        const documentNameToUse = docId || "index"; // Use provided docId or default to 'index'
-
-        const newYdoc = new Y.Doc();
-        if (initialYDocState) {
-          try {
-            Y.applyUpdate(newYdoc, initialYDocState);
-          } catch (e) {
-            console.error("[Editor Init] Failed to apply initialYDocState:", e);
-          }
-        }
-
-        const metadata = newYdoc.getMap("metadata");
-        if (!metadata.get("title")) {
-          metadata.set("title", "DocPub");
-        }
-        if (!metadata.get("saved_at")) {
-          metadata.set("saved_at", new Date().toISOString());
-        }
-
-        const metadataObserver = () => {
-          if (onMetadataUpdate) {
-            onMetadataUpdate({
-              title: metadata.get("title"),
-              saved_at: metadata.get("saved_at"),
-            });
-          }
-        };
-        metadata.observe(metadataObserver);
-        metadataObserver();
-
-        const newProvider = new HocuspocusProvider({
-          url: "ws://127.0.0.1:1235",
-          name: documentNameToUse,
-          document: newYdoc,
-        });
-
-        const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-        newProvider.awareness.setLocalStateField("user", {
-          name: userName,
-          color: localUserColor,
-        });
-
-        if (!quillContainerElement) {
-          return;
-        }
-
-        const quillInstance = new Quill(quillContainerElement, {
-          theme: "snow",
-          modules: {
-            toolbar: {
-              container: "#quill-toolbar",
-              handlers: {
-                caption: function (value) {
-                  const quill = this.quill;
-                  const range = quill.getSelection(true);
-                  if (range) {
-                    quill.format("bold", !quill.getFormat(range)["bold"]);
-                    quill.format(
-                      "align",
-                      quill.getFormat(range)["align"] === "center"
-                        ? false
-                        : "center",
-                    );
-                  }
-                },
-              },
-            },
-            formula: true, // Add formula module
-            history: { userOnly: true },
-            [TableHandler.moduleName]: {
-              fullWidth: true,
-              customButton: "Insert",
-            },
-          },
-          placeholder: "Start writing...",
-        });
-
-        const yQuillModule = require("y-quill");
-        const yQuillBinding = new yQuillModule.QuillBinding(
-          newYdoc.getText("quill"),
-          quillInstance,
-          newProvider.awareness,
-        );
-
-        setYdoc(newYdoc);
-        setProvider(newProvider);
-        setQuill(quillInstance);
-
-        return () => {
-          metadata.unobserve(metadataObserver);
-          yQuillBinding.destroy();
-          newProvider.destroy();
-          setYdoc(null);
-          setProvider(null);
-          setQuill(null);
-        };
-      },
-      [userName, onMetadataUpdateProp],
-    );
-
-    // Initial load and cleanup
+    // Effect to initialize Quill instance once
     useEffect(() => {
       if (!quillContainerNode) {
-        return;
+        return; // Wait for the container to be rendered
       }
-      const cleanup = initializeQuillAndHocuspocus(
-        onMetadataUpdateProp,
-        activeDocumentId,
-        initialYDocState,
-        quillContainerNode,
+
+      // Clear the container before initializing a new Quill instance
+      quillContainerNode.innerHTML = "";
+
+      const quillInstance = new Quill(quillContainerNode, {
+        theme: "snow",
+        modules: {
+          toolbar: {
+            container: "#quill-toolbar",
+            handlers: {
+              caption: function (value) {
+                const quill = this.quill;
+                const range = quill.getSelection(true);
+                if (range) {
+                  quill.format("bold", !quill.getFormat(range)["bold"]);
+                  quill.format(
+                    "align",
+                    quill.getFormat(range)["align"] === "center"
+                      ? false
+                      : "center",
+                  );
+                }
+              },
+            },
+          },
+          formula: true,
+          history: { userOnly: true },
+          [TableHandler.moduleName]: {
+            fullWidth: true,
+            customButton: "Insert",
+          },
+        },
+        placeholder: "Start writing...",
+      });
+
+      setQuill(quillInstance);
+
+      return () => {
+        setQuill(null);
+        if (quillContainerNode) {
+          quillContainerNode.innerHTML = "";
+        }
+      };
+    }, [quillContainerNode]); // Only run when the container node changes
+
+    // Effect to initialize Yjs and Hocuspocus provider
+    useEffect(() => {
+      if (!quill) {
+        return; // Wait for Quill to be initialized
+      }
+
+      const docId = activeDocumentId || "index";
+      const newYdoc = new Y.Doc();
+      setYdoc(newYdoc);
+
+      if (initialYDocState) {
+        try {
+          Y.applyUpdate(newYdoc, initialYDocState);
+        } catch (e) {
+          console.error("Failed to apply initial YDoc state:", e);
+        }
+      }
+
+      const metadata = newYdoc.getMap("metadata");
+      if (!metadata.get("title")) {
+        metadata.set("title", "DocPub");
+      }
+      if (!metadata.get("saved_at")) {
+        metadata.set("saved_at", new Date().toISOString());
+      }
+
+      const metadataObserver = () => {
+        if (onMetadataUpdateProp) {
+          onMetadataUpdateProp({
+            title: metadata.get("title"),
+            saved_at: metadata.get("saved_at"),
+          });
+        }
+      };
+      metadata.observe(metadataObserver);
+      metadataObserver();
+
+      const newProvider = new HocuspocusProvider({
+        url: "ws://127.0.0.1:1235",
+        name: docId,
+        document: newYdoc,
+      });
+      setProvider(newProvider);
+
+      const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+      newProvider.awareness.setLocalStateField("user", {
+        name: userName,
+        color: localUserColor,
+      });
+
+      const yQuillModule = require("y-quill");
+      const yQuillBinding = new yQuillModule.QuillBinding(
+        newYdoc.getText("quill"),
+        quill,
+        newProvider.awareness,
       );
 
       return () => {
-        if (cleanup) {
-          cleanup();
-        }
+        metadata.unobserve(metadataObserver);
+        yQuillBinding.destroy();
+        newProvider.destroy();
+        setYdoc(null);
+        setProvider(null);
       };
-    }, [
-      quillContainerNode,
-      activeDocumentId,
-      initialYDocState,
-      onMetadataUpdateProp,
-      initializeQuillAndHocuspocus,
-    ]);
+    }, [quill, activeDocumentId, initialYDocState, onMetadataUpdateProp, userName]);
 
     // Effect to update awareness when userName changes
     useEffect(() => {
