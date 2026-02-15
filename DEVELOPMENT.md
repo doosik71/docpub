@@ -8,7 +8,6 @@
 
 - **Node.js**: v18.x 이상 (LTS 권장)
 - **Package Manager**: `npm` 또는 `pnpm` (속도와 효율성을 위해 `pnpm` 권장)
-- **Database**: SQLite (메타데이터 관리용)
 - **Redis**: 실시간 협업 세션 및 캐싱 (선택 사항)
 
 ## 2. 로컬 서버 실행 (Getting Started)

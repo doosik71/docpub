@@ -1,5 +1,3 @@
-"use client";
-
 import {
   useEffect,
   useState,
@@ -14,181 +12,253 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import "quill/dist/quill.snow.css";
 import "@/core/quill-caption"; // Import to register the blot
 
-const QuillEditor = forwardRef(({ userName }, ref) => {
-  console.log("QuillEditor rendering..."); // Debug: Confirm component is rendering
+const QuillEditor = forwardRef(
+  ({ userName, editorRefProp, onMetadataUpdateProp, activeDocumentId }) => {
+    // Removed activeDocumentId, initialYDocStateProp
+    const quillContainerRef = useRef(null); // Use a ref for the container div
+    const quillToolbarRef = useRef(null);
+    const [quill, setQuill] = useState(null);
+    const [ydoc, setYdoc] = useState(null);
+    const [provider, setProvider] = useState(null);
 
-  const [quillContainer, setQuillContainer] = useState(null);
-  const quillToolbarRef = useRef(null);
-  const [quill, setQuill] = useState(null);
-  const [ydoc, setYdoc] = useState(null);
-  const [provider, setProvider] = useState(null);
-
-  const quillContainerCallbackRef = useCallback((node) => {
-    console.log("Callback ref fired. node:", node); // Debug: Confirm ref callback invocation
-    if (node !== null) {
-      setQuillContainer(node);
-    }
-  }, []);
-
-  useImperativeHandle(ref, () => ({
-    handlePrint: () => {
-      if (typeof window !== "undefined") {
-        window.print();
+    // Callback ref for the Quill container div
+    const quillContainerCallbackRef = useCallback((node) => {
+      if (node !== null) {
+        quillContainerRef.current = node;
       }
-    },
-  }));
+    }, []);
 
-  useEffect(() => {
-    let quillInstance;
-    let newYdoc;
-    let newProvider;
-    let yQuillBinding;
-    const remoteCursorElements = new Map();
-
-    console.log("useEffect running. quillContainer:", quillContainer); // Debug
-
-    if (typeof window !== "undefined" && quillContainer && !quill) {
-      console.log("Initializing Quill on container:", quillContainer); // Debug
-
-      newYdoc = new Y.Doc();
-      console.log("Y.Doc created:", newYdoc); // Debug
-      newProvider = new HocuspocusProvider({
-        url: "ws://127.0.0.1:1234",
-        name: "test-document",
-        document: newYdoc,
-      });
-      console.log("HocuspocusProvider created:", newProvider); // Debug
-
-      const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-
-      newProvider.awareness.setLocalStateField("user", {
-        name: userName, // Use userName prop
-        color: localUserColor,
-      });
-
-      newProvider.awareness.on("update", (update, origin) => {
-        console.log("Awareness update received:", { update, origin }); // Debug
-        const states = newProvider.awareness.getStates();
-        const activeClientIDs = new Set();
-
-        states.forEach((state, clientID) => {
-          activeClientIDs.add(clientID);
-
-          if (
-            clientID !== newProvider.document.clientID &&
-            state.user &&
-            state.cursor
-          ) {
-            // Re-added remote cursor logging for debugging purposes
-            console.log(
-              `Remote user ${state.user.name} (ID: ${clientID}) at cursor:`,
-              state.cursor,
-            );
-          }
-        });
-        // No visual cursor implementation, just logging
-      });
-
-      quillInstance = new Quill(quillContainer, {
-        theme: "snow",
-        modules: {
-          toolbar: {
-            container: quillToolbarRef.current,
-            // Removed Markdown handler
-            // Removed image handler
-          },
-          history: {
-            userOnly: true,
-          },
-        },
-        placeholder: "Start writing...",
-      });
-      console.log("Quill instance created:", quillInstance); // Debug
-
-      quillInstance.on("selection-change", (range, oldRange, source) => {
-        if (range && source === "user") {
-          newProvider.awareness.setLocalStateField("cursor", {
-            anchor: range.index,
-            head: range.index + range.length,
-          });
-        } else {
-          newProvider.awareness.setLocalStateField("cursor", null); // Clear cursor if no selection
+    // Function to initialize Quill and HocuspocusProvider
+    const initializeQuillAndHocuspocus = useCallback(
+      (onMetadataUpdate, docId) => {
+        // Added docId
+        if (typeof window === "undefined" || !quillContainerRef.current) {
+          return;
         }
-      });
 
-      const yQuillModule = require("y-quill");
-      yQuillBinding = new yQuillModule.QuillBinding(
-        newYdoc.getText("quill"),
-        quillInstance,
-      );
-      console.log("Quill binding created:", yQuillBinding); // Debug
+        // Clear the container before initializing a new Quill instance
+        quillContainerRef.current.innerHTML = "";
 
-      setYdoc(newYdoc);
-      setProvider(newProvider);
-      setQuill(quillInstance);
-    }
+        const documentNameToUse = docId || "current"; // Use provided docId or default to 'current'
+        console.log("Initializing Quill for document:", documentNameToUse);
 
-    return () => {
-      if (quillInstance) {
-        quillInstance = null;
+        const newYdoc = new Y.Doc();
+        // initialYDocState is no longer used here; applyYDocUpdate will be used after load.
+
+        const metadata = newYdoc.getMap("metadata");
+        // Initialize metadata with defaults if not present
+        if (!metadata.get("title")) {
+          metadata.set("title", "DocPub"); // Set default title if not already present
+        }
+        if (!metadata.get("saved_at")) {
+          // Only set saved_at if it's truly a new document without existing timestamp
+          metadata.set("saved_at", new Date().toISOString());
+        }
+
+        // Observe metadata changes and trigger callback
+        const metadataObserver = () => {
+          if (onMetadataUpdate) {
+            onMetadataUpdate({
+              title: metadata.get("title"),
+              saved_at: metadata.get("saved_at"),
+            });
+          }
+        };
+        metadata.observe(metadataObserver);
+
+        const newProvider = new HocuspocusProvider({
+          url: "ws://127.0.0.1:1235",
+          name: documentNameToUse, // Use documentNameToUse here
+          document: newYdoc,
+          // Add connection status logging
+          onStatus: ({ status }) => {
+            console.log(`[HocuspocusProvider] Connection status: ${status}`);
+          },
+          onOpen: () => {
+            console.log("[HocuspocusProvider] Connection opened.");
+          },
+          onClose: () => {
+            console.log("[HocuspocusProvider] Connection closed.");
+          },
+          onDestroy: () => {
+            console.log("[HocuspocusProvider] Connection destroyed.");
+          },
+        });
+
+        const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+
+        newProvider.awareness.setLocalStateField("user", {
+          name: userName,
+          color: localUserColor,
+        });
+
+        newProvider.awareness.on("update", (update, origin) => {
+          const states = newProvider.awareness.getStates();
+          states.forEach((state, clientID) => {
+            if (
+              clientID !== newProvider.document.clientID &&
+              state.user &&
+              state.cursor
+            ) {
+              // console.log(`Remote user ${state.user.name} (ID: ${clientID}) at cursor:`, state.cursor);
+            }
+          });
+        });
+
+        const quillInstance = new Quill(quillContainerRef.current, {
+          theme: "snow",
+          modules: {
+            toolbar: {
+              container: quillToolbarRef.current,
+            },
+            history: {
+              userOnly: true,
+            },
+          },
+          placeholder: "Start writing...",
+        });
+
+        const yQuillModule = require("y-quill");
+        const yQuillBinding = new yQuillModule.QuillBinding(
+          newYdoc.getText("quill"),
+          quillInstance,
+          newProvider.awareness, // Pass awareness for cursors
+        );
+
+        setYdoc(newYdoc);
+        setProvider(newProvider);
+        setQuill(quillInstance);
+
+        return () => {
+          console.log(
+            "Cleaning up Hocuspocus and Quill for document:",
+            documentNameToUse,
+          );
+          metadata.unobserve(metadataObserver); // Cleanup metadata observer
+          yQuillBinding.destroy();
+          newProvider.destroy();
+          // quillInstance.destroy(); // Destroy Quill instance to prevent memory leaks - NOT A FUNCTION
+          setYdoc(null);
+          setProvider(null);
+          setQuill(null);
+          // setCurrentDocumentName(null); // No longer needed as currentDocumentName state is removed
+        };
+      },
+      [userName, quillContainerRef, onMetadataUpdateProp, activeDocumentId],
+    ); // Add activeDocumentId to dependencies
+
+    // Initial load and cleanup
+    useEffect(() => {
+      const cleanup = initializeQuillAndHocuspocus(
+        onMetadataUpdateProp,
+        activeDocumentId,
+      ); // Pass activeDocumentId
+      return cleanup;
+    }, [initializeQuillAndHocuspocus, onMetadataUpdateProp, activeDocumentId]);
+
+    // Effect to update awareness when userName changes
+    useEffect(() => {
+      if (provider && userName) {
+        provider.awareness.setLocalStateField("user", {
+          name: userName,
+          color:
+            provider.awareness.getLocalState()?.user?.color ||
+            `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+        });
       }
-      if (yQuillBinding) {
-        yQuillBinding.destroy();
+    }, [userName, provider]);
+
+    // Effect to update saved_at timestamp on content change
+    useEffect(() => {
+      if (quill && ydoc) {
+        const handler = (delta, oldDelta, source) => {
+          // Only update if change was from user interaction
+          if (source === "user") {
+            const metadata = ydoc.getMap("metadata");
+            metadata.set("saved_at", new Date().toISOString());
+            // console.log(
+            //   "[QuillEditor] Metadata updated: saved_at",
+            //   metadata.get("saved_at"),
+            // );
+          }
+        };
+        quill.on("text-change", handler);
+        return () => {
+          quill.off("text-change", handler);
+        };
       }
-      if (newProvider) {
-        newProvider.destroy();
-      }
-      // remoteCursorElements.forEach(element => element.remove()); // Re-added remote cursor cleanup for debugging
-      // remoteCursorElements.clear(); // Re-added remote cursor cleanup for debugging
-    };
-  }, [quillContainer, userName]); // Add userName to dependency array
+    }, [quill, ydoc]);
 
-  // Effect to update awareness when userName changes
-  useEffect(() => {
-    if (provider && userName) {
-      provider.awareness.setLocalStateField("user", {
-        name: userName,
-        color:
-          provider.awareness.getLocalState()?.user?.color ||
-          `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-      });
-    }
-  }, [userName, provider]);
-
-  // if (!quill) { // Removed loading state to force rendering
-  //   return null;
-  // }
-
-  return (
-    <div id="quill-editor-component" className="flex flex-col h-full">
-      {/* Toolbar div */}
-      <div id="quill-toolbar" ref={quillToolbarRef}>
-        <button className="ql-bold"></button>
-        <button className="ql-italic"></button>
-        <button className="ql-underline"></button>
-        <select className="ql-header">
-          <option value="1"></option>
-          <option value="2"></option>
-          <option value="3"></option>
-          <option value="4"></option>
-          <option value=""></option>
-        </select>
-        <button className="ql-list" value="ordered"></button>
-        <button className="ql-list" value="bullet"></button>
-        <button className="ql-blockquote"></button>
-        <button className="ql-code-block"></button>
-        <button className="ql-link"></button>
-        <button className="ql-image"></button>
-        <button className="ql-caption">🈪</button> {/* Added Caption button */}
+    // Expose methods and states to parent component
+    useImperativeHandle(editorRefProp, () => {
+      // Use editorRefProp here
+      const exposed = {
+        handlePrint: () => {
+          if (typeof window !== "undefined") {
+            window.print();
+          }
+        },
+        getYdoc: () => ydoc, // Expose ydoc
+        // Removed currentDocumentName and loadDocument as document loading is now driven by activeDocumentId prop
+        getContents: () => quill?.getContents(), // Expose getContents
+        setContents: (delta) => quill?.setContents(delta), // Expose setContents
+        getDocumentTitle: () => ydoc?.getMap("metadata").get("title"), // Expose document title from metadata
+        setDocumentTitle: (newTitle) => {
+          if (ydoc) {
+            ydoc.getMap("metadata").set("title", newTitle);
+            console.log("[QuillEditor] Document title set to:", newTitle);
+          }
+        },
+        getBinaryYDocState: () => {
+          // New method to get Y.Doc's binary state
+          if (ydoc) {
+            return Y.encodeStateAsUpdate(ydoc);
+          }
+          return null;
+        },
+        applyYDocUpdate: (binaryState) => {
+          // New method to apply binary state to Y.Doc
+          if (ydoc && binaryState) {
+            Y.applyUpdate(ydoc, binaryState);
+            console.log("[QuillEditor] Applied Y.Doc binary update.");
+          }
+        },
+      };
+      // console.log("QuillEditor: useImperativeHandle exposing:", exposed); // ADD THIS LINE
+      return exposed;
+    });
+    return (
+      <div id="quill-editor-component" className="flex flex-col h-full">
+        {/* Toolbar div */}
+        <div id="quill-toolbar" ref={quillToolbarRef}>
+          <button className="ql-bold"></button>
+          <button className="ql-italic"></button>
+          <button className="ql-underline"></button>
+          <select className="ql-header">
+            <option value="1"></option>
+            <option value="2"></option>
+            <option value="3"></option>
+            <option value="4"></option>
+            <option value=""></option>
+          </select>
+          <button className="ql-list" value="ordered"></button>
+          <button className="ql-list" value="bullet"></button>
+          <button className="ql-blockquote"></button>
+          <button className="ql-code-block"></button>
+          <button className="ql-link"></button>
+          <button className="ql-image"></button>
+          <button className="ql-caption">🈪</button>{" "}
+          {/* Added Caption button */}
+        </div>
+        {/* Editor content area */}
+        <div
+          id="quill-container"
+          ref={quillContainerCallbackRef}
+          className="h-full"
+        ></div>
       </div>
-      {/* Editor content area */}
-      <div
-        id="quill-container"
-        ref={quillContainerCallbackRef}
-        className="h-full"
-      ></div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 export default QuillEditor;
