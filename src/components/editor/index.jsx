@@ -13,7 +13,7 @@ import "quill/dist/quill.snow.css";
 import "@/core/quill-caption"; // Import to register the blot
 
 const QuillEditor = forwardRef(
-  ({ userName, editorRefProp, onMetadataUpdateProp, activeDocumentId }) => {
+  ({ userName, editorRefProp, onMetadataUpdateProp, activeDocumentId, initialYDocState }) => {
     // Removed activeDocumentId, initialYDocStateProp
     const quillContainerRef = useRef(null); // Use a ref for the container div
     const quillToolbarRef = useRef(null);
@@ -30,7 +30,7 @@ const QuillEditor = forwardRef(
 
     // Function to initialize Quill and HocuspocusProvider
     const initializeQuillAndHocuspocus = useCallback(
-      (onMetadataUpdate, docId) => {
+      (onMetadataUpdate, docId, initialYDocState) => {
         // Added docId
         if (typeof window === "undefined" || !quillContainerRef.current) {
           return;
@@ -43,6 +43,10 @@ const QuillEditor = forwardRef(
         console.log("Initializing Quill for document:", documentNameToUse);
 
         const newYdoc = new Y.Doc();
+        if (initialYDocState) {
+          Y.applyUpdate(newYdoc, initialYDocState);
+          console.log("[QuillEditor] Applied initialYDocState to newYdoc.");
+        }
         // initialYDocState is no longer used here; applyYDocUpdate will be used after load.
 
         const metadata = newYdoc.getMap("metadata");
@@ -65,6 +69,7 @@ const QuillEditor = forwardRef(
           }
         };
         metadata.observe(metadataObserver);
+        metadataObserver(); // Manually trigger once to set initial title in parent
 
         const newProvider = new HocuspocusProvider({
           url: "ws://127.0.0.1:1235",
@@ -83,6 +88,10 @@ const QuillEditor = forwardRef(
           onDestroy: () => {
             console.log("[HocuspocusProvider] Connection destroyed.");
           },
+        });
+
+        newProvider.on('synced', isSynced => {
+          console.log(`[HocuspocusProvider] Document ${documentNameToUse} synced: ${isSynced}`);
         });
 
         const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
@@ -152,9 +161,10 @@ const QuillEditor = forwardRef(
       const cleanup = initializeQuillAndHocuspocus(
         onMetadataUpdateProp,
         activeDocumentId,
-      ); // Pass activeDocumentId
+        initialYDocState, // Pass initialYDocState
+      );
       return cleanup;
-    }, [initializeQuillAndHocuspocus, onMetadataUpdateProp, activeDocumentId]);
+    }, [initializeQuillAndHocuspocus, onMetadataUpdateProp, activeDocumentId, initialYDocState]);
 
     // Effect to update awareness when userName changes
     useEffect(() => {

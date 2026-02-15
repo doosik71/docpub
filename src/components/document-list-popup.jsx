@@ -136,17 +136,21 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
                   <td className="py-2 px-4 border-b">{doc.saved_by}</td>
                   <td className="py-2 px-4 border-b text-right space-x-2">
                     <button
+                      id="load-button"
                       onClick={() => handleLoadClick(doc.id)}
                       className="bg-blue-500 text-white py-0 px-2 rounded-md hover:bg-blue-600 text-sm"
                     >
                       ⇪
                     </button>
-                    <button
-                      onClick={() => handleDeleteClick(doc.id, doc.title)}
-                      className="bg-red-500 text-white py-0 px-2 rounded-md hover:bg-red-600 text-sm"
-                    >
-                      🗑
-                    </button>
+                    {doc.id !== 'index' && ( // Conditional rendering for delete button
+                      <button
+                        id="delete-button"
+                        onClick={() => handleDeleteClick(doc.id, doc.title)}
+                        className="bg-red-500 text-white py-0 px-2 rounded-md hover:bg-red-600 text-sm"
+                      >
+                        🗑
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

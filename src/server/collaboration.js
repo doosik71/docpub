@@ -83,11 +83,12 @@ const server = new Server({
                 // Ensure encodedState is a Uint8Array (Buffer is a subclass, but explicit conversion might help)
                 Y.applyUpdate(ydoc, new Uint8Array(encodedState));
               } catch (updateError) {
-                console.error(`[API - Express] Error applying Y.Doc update for ${documentId}.bin:`, updateError);
-                console.error(`[API - Express] Corrupted file content for ${documentId}.bin. Length: ${encodedState.length}`);
+                console.error(`[Hocuspocus] Error applying Y.Doc update for ${documentId}.bin:`, updateError);
+                console.error(`[Hocuspocus] Corrupted file content for ${documentId}.bin. Length: ${encodedState.length}`);
                 // Attempt to log a small part of the content for inspection
-                console.error(`[API - Express] Corrupted content (first 50 bytes base64): ${encodedState.toString('base64').substring(0, 50)}`);
-                throw updateError; // Re-throw to propagate the original error
+                console.error(`[Hocuspocus] Corrupted content (first 50 bytes base64): ${encodedState.toString('base64').substring(0, 50)}`);
+                // Do not throw error, return empty ydoc instead to allow connection
+                return ydoc;
               }      console.log(`Loaded document state for ${documentId}`);
     } else {
       console.log(`Document not found, creating new: ${documentId}`);
@@ -103,6 +104,7 @@ const server = new Server({
 
     try {
       const encodedState = Y.encodeStateAsUpdate(data.document); // Get Yjs binary state
+      console.log(`[Hocuspocus] Storing document ${documentId}: encodedState size = ${encodedState.length} bytes.`); // Added log
       fs.writeFileSync(filePath, Buffer.from(encodedState)); // Write binary data
       console.log(`[Hocuspocus] Successfully stored document: ${documentId} to ${filePath}`);
     } catch (error) {

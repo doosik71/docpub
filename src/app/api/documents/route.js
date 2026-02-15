@@ -9,6 +9,17 @@ export async function GET(request) {
     const documentsDir = path.join(process.cwd(), "documents");
     await fs.mkdir(documentsDir, { recursive: true }); // Ensure directory exists
 
+    const documentIdFromQuery = request.nextUrl.searchParams.get("id");
+    if (documentIdFromQuery) {
+      const filePath = path.join(documentsDir, `${documentIdFromQuery}.bin`);
+      if (fs.existsSync(filePath)) {
+        const binaryState = await fs.readFile(filePath);
+        return NextResponse.json({ id: documentIdFromQuery, state: binaryState.toString("base64") }, { status: 200 });
+      } else {
+        return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      }
+    }
+
     const files = await fs.readdir(documentsDir);
     const documentList = [];
     const filterTitle = request.nextUrl.searchParams
@@ -24,28 +35,39 @@ export async function GET(request) {
         const filePath = path.join(documentsDir, file);
         const binaryState = await fs.readFile(filePath);
 
-        // Reconstruct Y.Doc from binary state to get metadata
         const ydoc = new Y.Doc();
-        Y.applyUpdate(ydoc, binaryState);
+        try {
+          Y.applyUpdate(ydoc, binaryState);
 
-        const metadata = ydoc.getMap("metadata");
-        const title = metadata.get("title") || "Untitled Document";
-        const saved_at = metadata.get("saved_at") || new Date().toISOString();
-        const saved_by = metadata.get("saved_by") || "Unknown";
+          const metadata = ydoc.getMap("metadata");
+          const title = metadata.get("title") || "Untitled Document";
+          const saved_at = metadata.get("saved_at") || new Date().toISOString();
+          const saved_by = metadata.get("saved_by") || "Unknown";
 
-        // Apply filter if title is provided
-        if (filterTitle && !title.toLowerCase().includes(filterTitle)) {
-          continue;
+          // Apply filter if title is provided
+          if (filterTitle && !title.toLowerCase().includes(filterTitle)) {
+            continue;
+          }
+
+          documentList.push({
+            id: docId,
+            title,
+            saved_at,
+            saved_by,
+          });
+
+          console.log(`Document ${docId} metadata loaded successfully.`);
+        } catch (updateError) {
+          console.error(`Error loading metadata for ${docId}.bin:`, updateError);
+          // Optionally add a placeholder for corrupted documents or skip
+          documentList.push({
+            id: docId,
+            title: `Corrupted Document (${docId})`,
+            saved_at: new Date().toISOString(),
+            saved_by: "System",
+            corrupted: true,
+          });
         }
-
-        documentList.push({
-          id: docId,
-          title,
-          saved_at,
-          saved_by,
-        });
-
-        console.log(`Document ${docId} loaded successfully.`);
       }
     }
 
@@ -64,7 +86,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const { state } = await request.json();
+    const { id, state } = await request.json(); // Destructure 'id' as well
 
     if (!state) {
       return NextResponse.json(
@@ -74,17 +96,17 @@ export async function POST(request) {
     }
 
     const binaryState = Buffer.from(state, "base64");
-    const newDocId = uuidv4();
+    const docIdToSave = id || uuidv4(); // Use provided id or generate a new one
     const documentsDir = path.join(process.cwd(), "documents"); // Assuming 'documents' is at project root
 
     // Ensure the documents directory exists
     await fs.mkdir(documentsDir, { recursive: true });
 
-    const filePath = path.join(documentsDir, `${newDocId}.bin`);
+    const filePath = path.join(documentsDir, `${docIdToSave}.bin`);
     await fs.writeFile(filePath, binaryState);
 
-    console.log(`Document ${newDocId} saved successfully.`);
-    return NextResponse.json({ id: newDocId }, { status: 200 });
+    console.log(`Document ${docIdToSave} saved successfully.`);
+    return NextResponse.json({ id: docIdToSave }, { status: 200 });
   } catch (error) {
     console.error("Error saving document:", error);
     return NextResponse.json(
