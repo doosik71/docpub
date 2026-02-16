@@ -34,6 +34,27 @@ main h1.document-title {
   margin: 0;
 }
 
+div#quill-toolbar div.create_select {
+  display: none;
+  /* display: inline; */
+}
+
+div#quill-toolbar div.create_select_block {
+  background-color: white;
+  border: lightgray 1px solid;
+  padding: 0.5em 0;
+  margin-bottom: 0;
+  width: 13em;
+}
+
+div#quill-toolbar div.create_select_custom {
+  background-color: white;
+  border: lightgray 1px solid;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  width: 10.8em;
+}
+
 /* Quill Editor styles for ensuring visibility and editability */
 .ql-editor {
   min-height: 0; /* Allow flex-grow to manage height, but prevent collapse */

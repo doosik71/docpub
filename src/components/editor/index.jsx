@@ -100,6 +100,34 @@ const QuillEditor = forwardRef(
       };
     }, [quillContainerNode]); // Only run when the container node changes
 
+    // Effect to handle ql-table button click
+    useEffect(() => {
+      if (!quill) {
+        return;
+      }
+
+      const qlTableButton = document.querySelector(".ql-table");
+      const createSelectDiv = document.querySelector(
+        "#quill-toolbar .create_select",
+      );
+
+      if (qlTableButton && createSelectDiv) {
+        const toggleDisplay = () => {
+          if (createSelectDiv.style.display === "inline") {
+            createSelectDiv.style.display = "none";
+          } else {
+            createSelectDiv.style.display = "inline";
+          }
+        };
+
+        qlTableButton.addEventListener("click", toggleDisplay);
+
+        return () => {
+          qlTableButton.removeEventListener("click", toggleDisplay);
+        };
+      }
+    }, [quill]);
+
     // Effect to initialize Yjs and Hocuspocus provider
     useEffect(() => {
       if (!quill) {
