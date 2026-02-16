@@ -9,7 +9,7 @@
 - **User & Auth Layer**: RBAC(역할 기반 접근 제어)를 통한 사용자 인증 및 세션 관리.
 - **Storage Layer**: 계층적 폴더 구조와 **UUID 기반 .bin 파일**을 통한 문서 영속성 계층.
 - **Version Control Layer**: 문서 수정 이력 관리 및 스냅샷 복구.
-- **Editor Layer**: Tiptap 기반의 WYSIWYG 편집 및 스타일 엔진.
+- **Editor Layer**: Quill Editor 기반의 WYSIWYG 편집 및 스타일 엔진.
 - **Collaboration & AI Layer**: Hocuspocus를 이용한 실시간 동기화 (각 **문서 UUID 별**), 그리고 LLM 기반 지능형 도구.
 
 ---
@@ -36,7 +36,7 @@
 
 ### 2.4 검색 시스템 (Global & Local Search)
 
-- **Full-text Search**: 저장된 **문서 제목 및 내용(Y.Doc State 변환)** 내에서 키워드를 검색합니다. (Elasticsearch 또는 인덱싱 엔진 연동 고려)
+- **Full-text Search**: 저장된 **문서 제목 및 내용(Y.Doc State 변환)** 내에서 키워드를 검색합니다. (Elasticsearch, Meilisearch 또는 Algolia와 같은 인덱싱 엔진 연동 고려)
 - **Semantic Search**: AI 벡터 임베딩을 활용하여 단어의 의미적 유사성을 바탕으로 문서를 검색하는 기능을 지원합니다.
 
 ### 2.5 AI 지능형 편집 (AI-Powered Editing)
@@ -49,20 +49,20 @@
 
 ## 3. 기술 스택 요약 (Refined Tech Stack)
 
-| 구분          | 기술 스택                                       |
-| ------------- | ----------------------------------------------- |
-| **인증/계정** | NextAuth.js / Firebase Auth / JWT               |
-| **파일/권한** | PostgreSQL (Metadata), S3/Local FS (**Y.Doc Binary State .bin 파일**)   |
-| **버전 관리** | Yjs History + Custom Versioning Logic           |
-| **스타일링**  | Tailwind CSS / CSS Modules / Paged.js (for PDF) |
-| **검색**      | Meilisearch / Algolia (오픈 소스 대안) / **Y.Doc Contents Search**          |
-| **AI 연동**   | OpenAI API / Google Gemini SDK / Vercel AI SDK  |
+| 구분          | 기술 스택                                                             |
+| ------------- | --------------------------------------------------------------------- |
+| **인증/계정** | NextAuth.js / Firebase Auth / JWT                                     |
+| **파일/권한** | PostgreSQL (Metadata), S3/Local FS (**Y.Doc Binary State .bin 파일**) |
+| **버전 관리** | Yjs History + Custom Versioning Logic                                 |
+| **스타일링**  | Tailwind CSS / CSS Modules / Paged.js (for PDF)                       |
+| **검색**      | Meilisearch / Algolia (오픈 소스 대안) / **Y.Doc Contents Search**    |
+| **AI 연동**   | Google Gemini SDK                                                     |
 
 ---
 
 ## 4. 데이터 흐름 (Data Life-cycle)
 
-1. **사용자 접속**: 로그인 후 **URL 경로 (예: `/index` 또는 `/uuid`)** 에 따라 문서에 접근.
+1. **사용자 접속**: 로그인 후 **URL 경로 (예: `/doc/index` 또는 `/doc/doc-id`)** 에 따라 문서에 접근.
 2. **문서 로드**: **URL의 UUID에 해당하는 .bin 파일**로부터 Y.Doc Binary State 로드 -> 클라이언트 에디터에 주입.
 3. **편집 중**: 실시간 Yjs 동기화 (Hocuspocus) + 주기적인 자동 저장(**Y.Doc Binary State .bin 파일**로 저장).
 4. **AI 요청**: 특정 텍스트 블록 선택 -> AI 엔진 전달 -> 결과 반영(Editor Transaction).

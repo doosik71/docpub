@@ -57,7 +57,7 @@ const quillContent = ydoc.getText("quill"); // Quill 델타 데이터
 
 ### 3.2 실시간 협업 (Hocuspocus 서버)
 
-Hocuspocus 서버는 `src/server/collaboration.js`에 위치합니다. 클라이언트로부터 Yjs 업데이트를 수신하고, 이를 **UUID 기반 .bin 파일**로 파일 시스템에 주기적으로 영속화하는 로직을 포함합니다. 또한, 문서 API (`/api/documents`)를 호스팅하여 문서 목록 조회, 특정 문서 로드 및 저장 기능을 제공합니다.
+Hocuspocus 서버는 `src/server/collaboration.js`에 위치합니다. 클라이언트로부터 Yjs 업데이트를 수신하고, 이를 **ID 기반 .bin 파일**로 파일 시스템에 주기적으로 영속화하는 로직을 포함합니다. 최근 Hocuspocus 통합이 리팩토링되었으며, 문서 라우팅 방식이 개선되어 더욱 견고한 협업 환경을 제공합니다. 또한, 문서 API (`/api/documents`)를 호스팅하여 문서 목록 조회, 특정 문서 로드 및 저장 기능을 제공합니다.
 
 ---
 
@@ -98,10 +98,10 @@ pnpm start
 
 ## 6. AI 기능 개발 지침
 
-AI 관련 기능은 `src/ai/` 경로 내에서 관리합니다.
+AI 관련 기능은 `src/ai/` 경로 내에서 관리합니다. 특히 Google Gemini AI 모델과의 통합에 중점을 둡니다.
 
-1. **Prompt Engineering**: 각 **Y.Doc 노드**에 최적화된 프롬프트를 구성합니다.
-2. **Streaming**: 사용자 경험을 위해 `Vercel AI SDK`를 통한 스트리밍 응답을 기본으로 합니다.
+1. **Prompt Engineering**: 각 **Y.Doc 노드**에 최적화된 프롬프트를 구성하며, Gemini 모델의 특성을 고려합니다.
+2. **Streaming**: 사용자 경험을 위해 스트리밍 응답을 기본으로 하며, Gemini API의 스트리밍 기능을 활용합니다.
 3. **Safety**: 사용자 권한이 없는 문서 데이터가 AI 모델 학습에 사용되지 않도록 API 호출 시 옵션을 엄격히 관리합니다.
 
 ---
