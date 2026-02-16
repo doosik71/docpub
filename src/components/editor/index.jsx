@@ -32,6 +32,7 @@ const QuillEditor = forwardRef(
       onMetadataUpdateProp,
       activeDocumentId,
       initialYDocState,
+      onContentChangeProp, // Added this prop
     },
     ref,
   ) => {
@@ -180,21 +181,52 @@ const QuillEditor = forwardRef(
       }
     }, [userName, provider]);
 
-    // Effect to update saved_at timestamp on content change
+    // Effect to update saved_at timestamp on content change and handle TOC IDs
     useEffect(() => {
-      if (quill && ydoc) {
+      if (quill && ydoc && quillContainerNode) {
         const handler = (delta, oldDelta, source) => {
           if (source === "user") {
             const metadata = ydoc.getMap("metadata");
             metadata.set("saved_at", new Date().toISOString());
           }
+
+          if (onContentChangeProp) {
+            const currentContents = quill.getContents();
+            onContentChangeProp(currentContents);
+          }
+
+          // Add IDs to heading elements for TOC scrolling
+          const headingElements = quillContainerNode.querySelectorAll(
+            "h1, h2, h3, h4, h5, h6",
+          );
+          const headingIdCounter = {};
+
+          headingElements.forEach((headingEl) => {
+            const text = headingEl.innerText.trim();
+            if (text) {
+              let baseId = text
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-|-^$/g, "");
+              if (!baseId) {
+                baseId = `heading-${Date.now()}`;
+              }
+
+              headingIdCounter[baseId] = (headingIdCounter[baseId] || 0) + 1;
+              const id =
+                headingIdCounter[baseId] > 1
+                  ? `${baseId}-${headingIdCounter[baseId]}`
+                  : baseId;
+              headingEl.id = id;
+            }
+          });
         };
         quill.on("text-change", handler);
         return () => {
           quill.off("text-change", handler);
         };
       }
-    }, [quill, ydoc]);
+    }, [quill, ydoc, onContentChangeProp, quillContainerNode]);
 
     // Expose methods and states to parent component
     useImperativeHandle(

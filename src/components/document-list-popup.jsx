@@ -43,7 +43,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log("Fetched documents:", data);
+      // console.log("Fetched documents:", data);
 
       setDocuments(data);
     } catch (e) {

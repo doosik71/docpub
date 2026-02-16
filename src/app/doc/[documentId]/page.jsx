@@ -7,6 +7,7 @@ import DocumentListPopup from "../../../components/document-list-popup";
 import SearchDocumentPopup from "../../../components/search-document-popup";
 import NewDocumentPopup from "../../../components/new-document-popup";
 import GeminiPopup from "../../../components/gemini-popup";
+import TableOfContents from "../../../components/table-of-contents"; // Added import
 import { themes } from "../../../lib/themes";
 import { streamGeminiResponse } from "../../../lib/gemini";
 import { useRouter } from "next/navigation";
@@ -26,6 +27,8 @@ export default function DocumentPage({ params }) {
   const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false);
   const [isNewDocumentPopupOpen, setIsNewDocumentPopupOpen] = useState(false);
   const [isGeminiPopupOpen, setIsGeminiPopupOpen] = useState(false);
+  const [isTocOpen, setIsTocOpen] = useState(false); // Added state for TOC
+  const [tableOfContentsHeadings, setTableOfContentsHeadings] = useState([]); // Added state for TOC headings
   const [hasSelection, setHasSelection] = useState(false); // State to pass to GeminiPopup
   const [currentSelectedText, setCurrentSelectedText] = useState(""); // Stores the selected text
   const [currentSelectionRange, setCurrentSelectionRange] = useState(null); // Stores the selected range for insertion
@@ -38,6 +41,148 @@ export default function DocumentPage({ params }) {
   const editorRef = useRef(null);
   const [initialEditorYDocState, setInitialEditorYDocState] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Debounce utility function
+  const debounce = useCallback((func, delay) => {
+    let timeout;
+    return function executed(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, delay);
+    };
+  }, []);
+
+  // Function to extract headings from Quill Delta
+  const extractHeadings = useCallback((delta) => {
+    const headings = [];
+    const headingIdCounter = {};
+    const blockCandidates = []; // Stores objects { text, level, attributes } for lines
+    let currentLine = { text: "", attributes: {} }; // Accumulates text and attributes for the current logical line
+
+    if (!delta || !delta.ops) {
+      return headings;
+    }
+
+    delta.ops.forEach((op) => {
+      // Merge attributes, giving priority to block-level attributes for the current line
+      // This ensures that attributes from an `insert: '\n'` op are associated with the line
+      if (op.attributes) {
+        currentLine.attributes = {
+          ...currentLine.attributes,
+          ...op.attributes,
+        };
+      }
+
+      if (typeof op.insert === "string") {
+        const textSegments = op.insert.split("\n");
+        currentLine.text += textSegments[0]; // Add text before the first newline in this op
+
+        // If there are newlines within this op.insert, it means we've completed one or more lines
+        for (let i = 1; i < textSegments.length; i++) {
+          // If the current line (just completed by a newline) has a header attribute
+          if (currentLine.attributes.header) {
+            blockCandidates.push({
+              text: currentLine.text, // Don't trim yet, markdown might be at start
+              level: currentLine.attributes.header,
+              attributes: currentLine.attributes,
+            });
+          }
+          // Reset for the next line, carrying over text after the newline in the current op
+          currentLine = { text: textSegments[i], attributes: {} };
+          // Important: attributes from previous op for non-header should not persist to next line automatically.
+          // block-level attributes are typically consumed by the newline they apply to.
+          // So, for the new line, we only take attributes from the `op` itself, not accumulated `currentLine.attributes`.
+          // This is a subtle and important correction to `currentLine = { text: textSegments[i], attributes: {} };`
+          // If attributes in the original `op` had 'header', they were for the *just completed* line.
+          // The next line starts fresh.
+        }
+      } else {
+        // Non-string insert (embed, image, etc.) effectively ends the current logical line/block.
+        // Process currentLine if it's a header.
+        if (currentLine.attributes.header) {
+          blockCandidates.push({
+            text: currentLine.text,
+            level: currentLine.attributes.header,
+            attributes: currentLine.attributes,
+          });
+        }
+        // Reset for the new block which is an embed.
+        currentLine = { text: "", attributes: {} };
+      }
+    });
+
+    // After iterating through all ops, process any remaining currentLine if it's a header
+    // This handles cases where the document doesn't end with a newline or has a header at the end.
+    if (currentLine.attributes.header && currentLine.text.trim()) {
+      blockCandidates.push({
+        text: currentLine.text,
+        level: currentLine.attributes.header,
+        attributes: currentLine.attributes,
+      });
+    }
+
+    // Now, process `blockCandidates` to finalize headings.
+    // The provided Delta contains markdown syntax like "## 개요 2" directly in `op.insert` for some ops.
+    // This means we might need to strip markdown syntax from `headingText`.
+    blockCandidates.forEach((candidate) => {
+      let textToProcess = candidate.text;
+      let level = candidate.level;
+
+      // Attempt to strip markdown heading syntax if it's present in the text.
+      // This is a workaround for the observed Delta structure.
+      const match = textToProcess.match(/^(#+)\s*(.*)$/);
+      if (match) {
+        level = Math.min(match[1].length, 6); // Ensure level doesn't exceed h6
+        textToProcess = match[2].trim();
+      } else {
+        // If no markdown match, just trim the text
+        textToProcess = textToProcess.trim();
+      }
+
+      if (textToProcess) {
+        let baseId = textToProcess
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-^$/g, "");
+        if (!baseId) {
+          baseId = `heading-${Date.now()}`;
+        }
+
+        headingIdCounter[baseId] = (headingIdCounter[baseId] || 0) + 1;
+        const id =
+          headingIdCounter[baseId] > 1
+            ? `${baseId}-${headingIdCounter[baseId]}`
+            : baseId;
+
+        headings.push({ level, text: textToProcess, id });
+      }
+    });
+
+    // console.log("Extracted headings (attempt 4):", headings);
+    return headings;
+  }, []);
+
+  const handleContentChange = useCallback(
+    (delta) => {
+      // console.log("handleContentChange received delta:", delta); // Debug log
+      const extracted = extractHeadings(delta);
+      setTableOfContentsHeadings(extracted);
+    },
+    [extractHeadings],
+  );
+
+  const debouncedHandleContentChange = useCallback(
+    debounce(handleContentChange, 5000), // 5-second debounce
+    [debounce, handleContentChange],
+  );
+
+  // Debug log for tableOfContentsHeadings updates
+  useEffect(() => {
+    // console.log("tableOfContentsHeadings updated:", tableOfContentsHeadings);
+  }, [tableOfContentsHeadings]);
 
   const handleMetadataUpdate = useCallback((metadata) => {
     if (metadata.title) {
@@ -61,6 +206,21 @@ export default function DocumentPage({ params }) {
       titleInputRef.current.focus();
     }
   }, [isEditingTitle]);
+
+  useEffect(() => {
+    // This effect ensures the TOC is generated immediately after the document loads
+    // and the editor is initialized with its content.
+    if (initialEditorYDocState !== null && editorRef.current) {
+      const quillInstance = editorRef.current.getQuill();
+      if (quillInstance) {
+        // Get the current contents from Quill and pass to the non-debounced handler
+        // to populate the TOC immediately.
+        const currentContents = quillInstance.getContents();
+        // console.log("Initial load: Triggering handleContentChange with:", currentContents);
+        handleContentChange(currentContents);
+      }
+    }
+  }, [initialEditorYDocState, editorRef.current, handleContentChange]);
 
   useEffect(() => {
     if (saveMessage) {
@@ -156,7 +316,12 @@ export default function DocumentPage({ params }) {
             const range = quill.getSelection();
             if (range) {
               const headingLevel = parseInt(event.key, 10);
-              quill.formatLine(range.index, range.length, 'header', headingLevel);
+              quill.formatLine(
+                range.index,
+                range.length,
+                "header",
+                headingLevel,
+              );
             }
           }
         }
@@ -318,7 +483,7 @@ ${fullDocumentContent}
         break;
       case "append":
         initialInsertionIndex = quill.getLength();
-                quill.insertText(initialInsertionIndex, "\n", "api"); // Add new lines before appending
+        quill.insertText(initialInsertionIndex, "\n", "api"); // Add new lines before appending
         initialInsertionIndex += 2; // Adjust index for new lines
         break;
       case "insert":
@@ -512,6 +677,28 @@ ${fullDocumentContent}
                 />
               </svg>
             </button>
+            <button
+              id="toc-button"
+              onClick={() => {
+                setIsTocOpen(!isTocOpen);
+              }}
+              className="header-button"
+              aria-label="Table of Contents"
+            >
+              <svg
+                className="header-button-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h7"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -523,6 +710,7 @@ ${fullDocumentContent}
             onMetadataUpdateProp={handleMetadataUpdate}
             activeDocumentId={paramDocumentId}
             initialYDocState={initialEditorYDocState}
+            onContentChangeProp={debouncedHandleContentChange} // Added this prop
           />
         )}
       </div>
@@ -556,6 +744,12 @@ ${fullDocumentContent}
         currentSelectedText={currentSelectedText}
       />
       {saveMessage && <div className="save-message">{saveMessage}</div>}
+      {isTocOpen && (
+        <TableOfContents
+          headings={tableOfContentsHeadings}
+          onClose={() => setIsTocOpen(false)}
+        />
+      )}
     </main>
   );
 }

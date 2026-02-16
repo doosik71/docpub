@@ -826,3 +826,97 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
 .gemini-options-column .gemini-label-heading {
   margin-bottom: 0.5rem; /* Add more space below heading */
 }
+
+/* TableOfContents Styles */
+.table-of-contents-container {
+  position: fixed;
+  top: 110px; /* Adjust based on header height */
+  right: 10px;
+  width: 250px;
+  max-height: calc(100vh - 120px); /* Adjust based on header/footer space */
+  overflow-y: auto;
+  background-color: var(--background);
+  border: 1px solid #e0e0e0;
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 990; /* Below header, above main content */
+  padding: 1rem;
+  color: var(--foreground);
+}
+
+.table-of-contents-container .toc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+}
+
+.table-of-contents-container .toc-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.table-of-contents-container .toc-close-button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--foreground);
+  opacity: 0.7;
+}
+
+.table-of-contents-container .toc-close-button:hover {
+  opacity: 1;
+}
+
+.table-of-contents-container nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.table-of-contents-container nav li {
+  margin-bottom: 0.25rem;
+}
+
+.table-of-contents-container nav a {
+  display: block;
+  padding: 0.2rem 0.5rem;
+  text-decoration: none;
+  color: var(--foreground);
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.table-of-contents-container nav a:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.heading-level-1 {
+  font-weight: bold;
+}
+.heading-level-2 {
+  margin-left: 10px;
+  font-size: 0.95em;
+}
+.heading-level-3 {
+  margin-left: 20px;
+  font-size: 0.9em;
+}
+.heading-level-4 {
+  margin-left: 30px;
+  font-size: 0.85em;
+}
+.heading-level-5 {
+  margin-left: 40px;
+  font-size: 0.8em;
+}
+.heading-level-6 {
+  margin-left: 50px;
+  font-size: 0.75em;
+}
