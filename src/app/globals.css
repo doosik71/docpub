@@ -55,6 +55,10 @@ div#quill-toolbar div.create_select_custom {
   width: 10.8em;
 }
 
+div#quill-editor-component div.ql-editor p.ql-table-wrapper td.ql-table-cell {
+  padding: 0 0.5em;
+}
+
 /* Quill Editor styles for ensuring visibility and editability */
 .ql-editor {
   min-height: 0; /* Allow flex-grow to manage height, but prevent collapse */
