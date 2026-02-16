@@ -160,7 +160,13 @@ const QuillEditor = forwardRef(
         setYdoc(null);
         setProvider(null);
       };
-    }, [quill, activeDocumentId, initialYDocState, onMetadataUpdateProp, userName]);
+    }, [
+      quill,
+      activeDocumentId,
+      initialYDocState,
+      onMetadataUpdateProp,
+      userName,
+    ]);
 
     // Effect to update awareness when userName changes
     useEffect(() => {

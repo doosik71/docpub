@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;700&display=swap');
+
+/* src/app/pdf/print.css */
+
+/* Basic print styles for the document */
+body, .ql-editor {
+  font-family: 'Noto Sans KR', 'Times New Roman', serif;
+  margin: 0;
+  padding: 0;
+  color: #000;
+  line-height: 1.5;
+}
+
+.ql-editor {
+  /* Ensure Quill editor content is reset for print */
+  min-height: auto;
+  padding: 0;
+  border: none;
+}
+
+/* Page break control */
+p, h1, h2, h3, h4, h5, h6, li {
+  orphans: 3; /* Minimum number of lines at the bottom of a page */
+  widows: 3;  /* Minimum number of lines at the top of a page */
+}
+
+/* Force page breaks for headings for better readability if desired */
+/* h1 { page-break-before: always; } */
+h2 { page-break-before: avoid; } /* Avoid breaking right before an H2 */
+
+
+/* Images */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  page-break-inside: avoid; /* Prevent images from being cut across pages */
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  page-break-inside: avoid; /* Prevent tables from being cut across pages */
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+/* KaTeX specific styles for print */
+.katex {
+  font-size: 1.2em; /* Slightly larger for print */
+  page-break-inside: avoid; /* Keep formulas on one page */
+}
+
+.ql-formula {
+  text-align: center;
+  margin: 1em 0;
+}
+
+/* Hide elements that are not relevant for print */
+.ql-toolbar, .ql-bubble.ql-toolbar {
+  display: none !important;
+}
+
+/* Ensure code blocks look good */
+pre {
+  font-family: 'Noto Sans Mono', monospace;
+  background-color: #f4f4f4;
+  border: 1px solid #ddd;
+  padding: 1em;
+  overflow: auto;
+  page-break-inside: avoid;
+}
+
+/* General Link styling for print (e.g., show URLs) */
+a {
+  text-decoration: underline;
+  color: blue;
+}
+a[href]:after {
+  content: " (" attr(href) ")";
+  font-size: 90%;
+  word-break: break-all;
+}
+a[href^="#"]:after, a[href^="javascript:"]:after {
+  content: ""; /* Don't show URL for internal links or javascript */
+}
+
