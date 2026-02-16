@@ -2,18 +2,18 @@
 
 import dynamic from "next/dynamic";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import MenuPopup from "../../components/menu-popup";
-import DocumentListPopup from "../../components/document-list-popup";
-import SearchDocumentPopup from "../../components/search-document-popup";
-import NewDocumentPopup from "../../components/new-document-popup";
-import GeminiPopup from "../../components/gemini-popup";
-import { themes } from "../../lib/themes";
-import { streamGeminiResponse } from "../../lib/gemini";
+import MenuPopup from "../../../components/menu-popup";
+import DocumentListPopup from "../../../components/document-list-popup";
+import SearchDocumentPopup from "../../../components/search-document-popup";
+import NewDocumentPopup from "../../../components/new-document-popup";
+import GeminiPopup from "../../../components/gemini-popup";
+import { themes } from "../../../lib/themes";
+import { streamGeminiResponse } from "../../../lib/gemini";
 import { useRouter } from "next/navigation";
 import converter from "@workiom/delta-md-converter";
 
 const DynamicQuillEditor = dynamic(
-  () => import("../../components/editor/index.jsx"),
+  () => import("../../../components/editor/index.jsx"),
   { ssr: false },
 );
 
@@ -281,17 +281,24 @@ export default function DocumentPage({ params }) {
     let initialInsertionIndex =
       currentSelectionRange?.index ?? quill.getLength(); // Use currentSelectionRange or end
 
-    let fullPrompt = `User request: ${prompt}\n\n`;
+    let fullPrompt = `User request: ${prompt}
+
+`;
     let contentForGemini = "";
 
     const fullDocumentContent = quill.getText();
 
     if (sendSelectedText && currentSelectedText) {
-      contentForGemini += `Selected text for analysis: "${currentSelectedText}"\n\n`;
+      contentForGemini += `Selected text for analysis: "${currentSelectedText}"
+
+`;
     }
 
     if (sendWholeDocument) {
-      contentForGemini += `Full document content:\n${fullDocumentContent}\n\n`;
+      contentForGemini += `Full document content:
+${fullDocumentContent}
+
+`;
     }
 
     fullPrompt += contentForGemini;
@@ -311,7 +318,7 @@ export default function DocumentPage({ params }) {
         break;
       case "append":
         initialInsertionIndex = quill.getLength();
-        quill.insertText(initialInsertionIndex, "\n\n", "api"); // Add new lines before appending
+                quill.insertText(initialInsertionIndex, "\n", "api"); // Add new lines before appending
         initialInsertionIndex += 2; // Adjust index for new lines
         break;
       case "insert":
@@ -321,7 +328,7 @@ export default function DocumentPage({ params }) {
             currentSelectionRange.index + currentSelectionRange.length;
         }
 
-        quill.insertText(initialInsertionIndex, "\n", "api"); // Add new lines before appending
+        quill.insertText(initialInsertionIndex, "\n\n", "api"); // Add new lines before appending
         initialInsertionIndex += 2;
 
         break;
@@ -344,7 +351,7 @@ export default function DocumentPage({ params }) {
 
   const handleLoadDocument = (documentId) => {
     handleDocumentListClose();
-    router.push(`/${documentId}`);
+    router.push(`/doc/${documentId}`);
   };
 
   const handleTitleClick = () => {

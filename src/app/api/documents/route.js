@@ -37,7 +37,7 @@ export async function GET(request) {
 
         const ydoc = new Y.Doc();
         try {
-          Y.applyUpdate(ydoc, binaryState);
+          Y.applyUpdate(ydoc, new Uint8Array(binaryState));
 
           const metadata = ydoc.getMap("metadata");
           const title = metadata.get("title") || "Untitled Document";

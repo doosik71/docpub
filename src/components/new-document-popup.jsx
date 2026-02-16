@@ -48,7 +48,7 @@ const NewDocumentPopup = ({ isOpen, onClose }) => {
       setError("Document ID cannot be empty.");
       return;
     }
-    router.push(`/${newId}`);
+    router.push(`/doc/${newId}`);
     onClose();
   };
 

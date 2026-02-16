@@ -134,7 +134,7 @@ const QuillEditor = forwardRef(
       metadataObserver();
 
       const newProvider = new HocuspocusProvider({
-        url: "ws://127.0.0.1:1235",
+        url: "ws://localhost:3000/hocuspocus",
         name: docId,
         document: newYdoc,
       });
