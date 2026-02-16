@@ -200,6 +200,7 @@ const QuillEditor = forwardRef(
           }
         },
         getYdoc: () => ydoc,
+        getQuill: () => quill,
         getContents: () => quill?.getContents(),
         setContents: (delta) => quill?.setContents(delta),
         getDocumentTitle: () => ydoc?.getMap("metadata").get("title"),

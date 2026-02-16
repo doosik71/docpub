@@ -20,6 +20,10 @@ main.main-layout {
   margin-right: auto;
 }
 
+main div.header-container {
+  min-height: 5.4em;
+}
+
 main div.document-header-row {
   padding: 0.5em 0.1em;
   margin: 0 auto;
@@ -80,8 +84,7 @@ main h1.document-title {
 }
 
 #editor-wrapper-page {
-  margin-top: 95px; /* Height of document-header-row (64px) + quill-toolbar (42px) */
-  margin-bottom: 1em;
+  margin: 0 auto 1em;
 }
 
 /* Caption styling for Quill */
@@ -298,13 +301,14 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
+  box-sizing: border-box;
+  min-width: 0; /* Allow flex container to shrink */
 }
 
 /* Header Buttons */
 .header-button {
   width: 2rem; /* Equivalent to w-8 (32px) */
   height: 2rem; /* Equivalent to h-8 (32px) */
-  flex-shrink: 0; /* Equivalent to flex-none */
   padding: 0.25rem; /* Equivalent to p-1 (4px) */
   color: #4b5563; /* Equivalent to text-gray-600 */
   background-color: #f3f4f6; /* Equivalent to bg-gray-100 */
@@ -344,6 +348,8 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
   border-bottom: 2px solid #3b82f6; /* Equivalent to border-b-2 border-blue-500 */
   outline: none; /* Equivalent to outline-none */
   padding: 0.25rem; /* Add some padding */
+  flex-grow: 1; /* Allow it to grow */
+  min-width: 0; /* Allow it to shrink */
 }
 /* SearchDocumentPopup Styles */
 .search-popup-overlay {
@@ -758,4 +764,65 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
 
 .menu-save-button:hover {
   background-color: #2563eb; /* hover:bg-blue-600 */
+}
+
+/* Gemini Popup Styles */
+.gemini-prompt-container {
+  margin-bottom: 1rem;
+}
+
+.gemini-prompt-textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  outline: none;
+}
+
+.gemini-prompt-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.gemini-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.gemini-options-container label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gemini-label-heading {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  color: #333;
+}
+
+/* Gemini Options Columns Layout */
+.gemini-options-columns {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem; /* Space between columns */
+  margin-bottom: 1rem;
+}
+
+.gemini-options-column {
+  flex: 1; /* Each column takes equal space */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.375rem;
+}
+
+.gemini-options-column .gemini-label-heading {
+  margin-bottom: 0.5rem; /* Add more space below heading */
 }

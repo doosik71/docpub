@@ -6,7 +6,9 @@ import MenuPopup from "../../components/menu-popup";
 import DocumentListPopup from "../../components/document-list-popup";
 import SearchDocumentPopup from "../../components/search-document-popup";
 import NewDocumentPopup from "../../components/new-document-popup";
+import GeminiPopup from "../../components/gemini-popup";
 import { themes } from "../../lib/themes";
+import { streamGeminiResponse } from "../../lib/gemini";
 import { useRouter } from "next/navigation";
 import converter from "@workiom/delta-md-converter";
 
@@ -23,6 +25,10 @@ export default function DocumentPage({ params }) {
   const [isDocumentListOpen, setIsDocumentListOpen] = useState(false);
   const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false);
   const [isNewDocumentPopupOpen, setIsNewDocumentPopupOpen] = useState(false);
+  const [isGeminiPopupOpen, setIsGeminiPopupOpen] = useState(false);
+  const [hasSelection, setHasSelection] = useState(false); // State to pass to GeminiPopup
+  const [currentSelectedText, setCurrentSelectedText] = useState(""); // Stores the selected text
+  const [currentSelectionRange, setCurrentSelectionRange] = useState(null); // Stores the selected range for insertion
   const [userName, setUserName] = useState("Guest");
   const [theme, setTheme] = useState("light");
   const [documentTitle, setDocumentTitle] = useState("DocPub");
@@ -137,6 +143,34 @@ export default function DocumentPage({ params }) {
       } else if (event.ctrlKey && event.key === "o") {
         event.preventDefault();
         setIsDocumentListOpen(true);
+      } else if (event.ctrlKey && event.key === "g") {
+        event.preventDefault();
+
+        // 코드 중복 작성을 피하고 가급적 기존 함수를 사용할 것.
+        handleGeminiClick();
+      } else if (event.ctrlKey && ["1", "2", "3", "4"].includes(event.key)) {
+        event.preventDefault();
+        if (editorRef.current) {
+          const quill = editorRef.current.getQuill();
+          if (quill) {
+            const range = quill.getSelection();
+            if (range) {
+              const headingLevel = parseInt(event.key, 10);
+              quill.formatLine(range.index, range.length, 'header', headingLevel);
+            }
+          }
+        }
+      } else if (event.ctrlKey && event.key === "0") {
+        event.preventDefault();
+        if (editorRef.current) {
+          const quill = editorRef.current.getQuill();
+          if (quill) {
+            const range = quill.getSelection();
+            if (range) {
+              quill.removeFormat(range.index, range.length); // Remove all formats
+            }
+          }
+        }
       }
     };
 
@@ -206,6 +240,108 @@ export default function DocumentPage({ params }) {
   const handleMenuClose = () => setIsMenuOpen(false);
   const handleDocumentListClose = () => setIsDocumentListOpen(false);
   const handleSearchClick = () => setIsSearchPopupOpen(true);
+
+  const handleGeminiClick = () => {
+    if (editorRef.current) {
+      const quill = editorRef.current.getQuill();
+      if (quill) {
+        const selection = quill.getSelection();
+        const isTextSelected = !!(selection && selection.length > 0);
+        setHasSelection(isTextSelected);
+        const selectedText = isTextSelected
+          ? quill.getText(selection.index, selection.length)
+          : "";
+        setCurrentSelectedText(selectedText);
+        setCurrentSelectionRange(selection); // Capture the range
+      } else {
+        setHasSelection(false);
+        setCurrentSelectedText("");
+        setCurrentSelectionRange(null); // Clear the range
+      }
+    } else {
+      setHasSelection(false);
+      setCurrentSelectedText("");
+      setCurrentSelectionRange(null); // Clear the range
+    }
+    setIsGeminiPopupOpen(true);
+  };
+  const handleGeminiClose = () => setIsGeminiPopupOpen(false);
+
+  const handleSendToGemini = ({
+    prompt,
+    insertionMode,
+    sendSelectedText,
+    sendWholeDocument,
+  }) => {
+    if (!editorRef.current) return;
+
+    const quill = editorRef.current.getQuill();
+    if (!quill) return;
+
+    let initialInsertionIndex =
+      currentSelectionRange?.index ?? quill.getLength(); // Use currentSelectionRange or end
+
+    let fullPrompt = `User request: ${prompt}\n\n`;
+    let contentForGemini = "";
+
+    const fullDocumentContent = quill.getText();
+
+    if (sendSelectedText && currentSelectedText) {
+      contentForGemini += `Selected text for analysis: "${currentSelectedText}"\n\n`;
+    }
+
+    if (sendWholeDocument) {
+      contentForGemini += `Full document content:\n${fullDocumentContent}\n\n`;
+    }
+
+    fullPrompt += contentForGemini;
+
+    // Determine initial insertion point based on insertionMode
+    switch (insertionMode) {
+      case "replace":
+        // If there's a selection, replace it. Otherwise, it implicitly acts like 'insert'
+        // where initialInsertionIndex is already set to the cursor position.
+        if (currentSelectionRange && currentSelectionRange.length > 0) {
+          quill.deleteText(
+            currentSelectionRange.index,
+            currentSelectionRange.length,
+            "api",
+          );
+        }
+        break;
+      case "append":
+        initialInsertionIndex = quill.getLength();
+        quill.insertText(initialInsertionIndex, "\n\n", "api"); // Add new lines before appending
+        initialInsertionIndex += 2; // Adjust index for new lines
+        break;
+      case "insert":
+      default:
+        if (hasSelection && currentSelectionRange) {
+          initialInsertionIndex =
+            currentSelectionRange.index + currentSelectionRange.length;
+        }
+
+        quill.insertText(initialInsertionIndex, "\n", "api"); // Add new lines before appending
+        initialInsertionIndex += 2;
+
+        break;
+    }
+
+    let currentInsertionIndex = initialInsertionIndex;
+
+    streamGeminiResponse(
+      fullPrompt,
+      (chunk) => {
+        quill.insertText(currentInsertionIndex, chunk, "api");
+        currentInsertionIndex += chunk.length;
+        quill.setSelection(currentInsertionIndex);
+      },
+      () => {
+        setSaveMessage("Gemini response complete!");
+      },
+    );
+  };
+
   const handleLoadDocument = (documentId) => {
     handleDocumentListClose();
     router.push(`/${documentId}`);
@@ -343,6 +479,14 @@ export default function DocumentPage({ params }) {
               </svg>
             </button>
             <button
+              id="gemini-button"
+              onClick={handleGeminiClick}
+              className="header-button"
+              aria-label="Ask Gemini"
+            >
+              ✨
+            </button>
+            <button
               id="menu-button"
               onClick={handleMenuToggle}
               className="header-button"
@@ -396,6 +540,13 @@ export default function DocumentPage({ params }) {
       <NewDocumentPopup
         isOpen={isNewDocumentPopupOpen}
         onClose={handleNewDocumentClose}
+      />
+      <GeminiPopup
+        isOpen={isGeminiPopupOpen}
+        onClose={handleGeminiClose}
+        onSend={handleSendToGemini}
+        hasSelection={hasSelection}
+        currentSelectedText={currentSelectedText}
       />
       {saveMessage && <div className="save-message">{saveMessage}</div>}
     </main>

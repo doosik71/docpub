@@ -11,6 +11,7 @@
     "server": "node src/server/collaboration.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@hocuspocus/provider": "^3.4.4",
     "@hocuspocus/server": "^3.4.4",
     "@workiom/delta-md-converter": "^0.1.4",

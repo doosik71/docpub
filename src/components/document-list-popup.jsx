@@ -38,9 +38,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `/api/documents?title=${currentFilter}`,
-      );
+      const response = await fetch(`/api/documents?title=${currentFilter}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -141,7 +139,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
                       onClick={() => handleLoadClick(doc.id)}
                       className="document-list-load-button"
                     >
-                      ⇪
+                      Open
                     </button>
                     <button
                       id="delete-button"
@@ -149,7 +147,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
                       className="document-list-delete-button"
                       disabled={doc.id === "index"} // Disable if doc.id is "index"
                     >
-                      🗑
+                      DEL
                     </button>
                   </td>
                 </tr>

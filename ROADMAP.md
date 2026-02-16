@@ -2,36 +2,35 @@
 
 `docpub` 프로젝트의 개발 단계와 향후 비전을 설명합니다. 본 프로젝트는 총 4단계의 마일스톤을 거쳐 완성됩니다.
 
-## Phase 1: 기반 구축 (Foundational Setup) - **진행 중**
+## Phase 1: 기반 구축 (Foundational Setup) - **완료**
 
 프로젝트의 핵심 엔진과 기본적인 편집 환경을 구축합니다.
 
 - [x] 프로젝트 스택 초기화 (Next.js, Quill.js, Tailwind CSS)
 - [x] Core Y.Doc 스키마 정의 및 Quill 확장 매핑 (Quill 캡션 등 기본 기능)
 - [x] 기본적인 위지윅(WYSIWYG) 편집 기능 구현 (텍스트, 제목, 리스트)
-- [x] **UUID 기반 동적 URL 라우팅 및 파일 관리 UI 개발**
+- [x] 사용자 정의 ID 기반 동적 URL 라우팅 및 파일 관리 UI 개발
 
 ## Phase 2: 협업 및 버전 관리 (Collaboration & Sync) - **완료**
 
 실시간으로 함께 쓰고, 변화를 추적하는 기능을 구현합니다.
 
 - [x] Yjs 기반 실시간 동시 편집 서버(Hocuspocus) 연동
-- [x] **UUID 기반 .bin 파일 자동 저장 및 스냅샷 버전 관리 시스템**
-- [x] **문서 제목 및 내용 기반 통합 검색 기능 구현**
+- [x] ID 기반 .bin 파일 자동 저장
+- [x] 문서 제목 및 내용 기반 검색 기능 구현
 
-## Phase 3: DTP 레이아웃 및 스타일 (Advanced DTP & Styling) - **계획 중**
+## Phase 3: 레이아웃 및 스타일 (Layout & Styling) - **진행 중**
 
-마크다운을 넘어선 고수준의 서식 기능을 완성합니다.
+- [x] 문서 스타일 테마 시스템 (사용자 정의 CSS 변수 적용)
+- [x] 수식(LaTeX) 편집 기능 구현
+- [x] 인쇄 미리보기 최적화 (UI 요소 숨김, 여백 조정)
+- [ ] 복잡한 표(Table) 편집 기능 고도화
 
-- [ ] CSS Paged Media를 활용한 페이지 기반 레이아웃(A4/Letter) 렌더링
-- [ ] 복잡한 표(Table) 편집기 및 수식(LaTeX) 지원 확장 도구
-- [ ] 문서 스타일 테마 시스템 (사용자 정의 CSS 변수 적용)
-- [ ] 인쇄 미리보기 및 다단 레이아웃 제어 기능
-
-## Phase 4: AI 지능형 편집 및 배포 (AI Integration & Export) - **계획 중**
+## Phase 4: AI 지능형 편집 및 배포 (AI Integration & Export) - **진행 중**
 
 AI 협업과 최종 출판 기능을 고도화합니다.
 
+- [x] 마크다운(.md) 형식으로 문서 내보내기 기능 구현
 - [ ] LLM 기반 Context-aware 편집 보조 도구(자동 완성, 문체 변경) 연동
 - [ ] AI를 활용한 시맨틱 검색 및 문서 자동 요약 기능
 - [ ] 멀티 포맷 출력 엔진 (PDF, EPUB, Clean XML) 완성
