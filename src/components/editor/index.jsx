@@ -8,6 +8,7 @@ import {
 } from "react";
 import Quill from "quill";
 import * as Y from "yjs";
+import QuillCursors from "quill-cursors";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import "quill/dist/quill.snow.css";
 import "katex/dist/katex.min.css"; // Import KaTeX CSS
@@ -19,6 +20,7 @@ import TableHandler, { rewirteFormats } from "quill1.3.7-table-module";
 import "quill1.3.7-table-module/dist/index.css";
 
 // Register table module
+Quill.register("modules/cursors", QuillCursors);
 Quill.register({ [`modules/${TableHandler.moduleName}`]: TableHandler }, true);
 rewirteFormats(); // Rewrite native formats for table compatibility
 
@@ -77,6 +79,7 @@ const QuillEditor = forwardRef(
               },
             },
           },
+          cursors: true,
           formula: true,
           history: { userOnly: true },
           [TableHandler.moduleName]: {
@@ -160,6 +163,8 @@ const QuillEditor = forwardRef(
         newProvider.destroy();
         setYdoc(null);
         setProvider(null);
+        quill.off("selection-change", logLocalCursorState); // Clean up debug listener
+        newProvider.awareness.off("change", awarenessChangeHandler); // Clean up debug listener
       };
     }, [
       quill,
@@ -168,7 +173,6 @@ const QuillEditor = forwardRef(
       onMetadataUpdateProp,
       userName,
     ]);
-
     // Effect to update awareness when userName changes
     useEffect(() => {
       if (provider && userName) {
@@ -309,7 +313,7 @@ const QuillEditor = forwardRef(
               <path d="M7 20h10" />
             </svg>
           </button>
-          {/* <button className="ql-table">Table</button> */}
+          <button className="ql-table"></button>
           {/* Custom Table button */}
           <button className="ql-clean"></button>
         </div>

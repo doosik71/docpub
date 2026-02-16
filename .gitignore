@@ -43,5 +43,6 @@ next-env.d.ts
 /src/generated/prisma
 /documents/
 /temp
+/test
 /.gemini/
 commit_message.txt
