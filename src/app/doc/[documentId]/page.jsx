@@ -575,6 +575,7 @@ ${fullDocumentContent}
               onClick={handleSearchClick}
               className="header-button"
               aria-label="Search Document"
+              title="Search Document"
             >
               <svg
                 className="header-button-icon"
@@ -595,6 +596,7 @@ ${fullDocumentContent}
               onClick={handleNewDocument}
               className="header-button"
               aria-label="New Document"
+              title="New Document"
             >
               <svg
                 className="header-button-icon"
@@ -615,6 +617,7 @@ ${fullDocumentContent}
               onClick={handleOpenDocument}
               className="header-button"
               aria-label="Open Document"
+              title="Open Document (Ctrl+O)"
             >
               <svg
                 className="header-button-icon"
@@ -635,6 +638,7 @@ ${fullDocumentContent}
               onClick={handleSaveDocument}
               className="header-button"
               aria-label="Save Document"
+              title="Save Document (Ctrl+S)"
             >
               <svg
                 className="header-button-icon"
@@ -655,6 +659,7 @@ ${fullDocumentContent}
               onClick={handleGeminiClick}
               className="header-button"
               aria-label="Ask Gemini"
+              title="Ask Gemini (Ctrl+G)"
             >
               ✨
             </button>
@@ -665,6 +670,7 @@ ${fullDocumentContent}
               }}
               className="header-button"
               aria-label="Table of Contents"
+              title="Table of Contents"
             >
               <svg
                 className="header-button-icon"
@@ -684,6 +690,7 @@ ${fullDocumentContent}
               id="menu-button"
               onClick={handleMenuToggle}
               className="header-button"
+              title="Settings Menu"
             >
               <svg
                 className="header-button-icon"

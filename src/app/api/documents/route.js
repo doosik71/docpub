@@ -10,13 +10,21 @@ export async function GET(request) {
     await fs.promises.mkdir(documentsDir, { recursive: true }); // Ensure directory exists
 
     const documentIdFromQuery = request.nextUrl.searchParams.get("id");
+
+    // 로딩할 문서 id가 명시되어 있으면,
     if (documentIdFromQuery) {
       const filePath = path.join(documentsDir, `${documentIdFromQuery}.bin`);
       if (fs.existsSync(filePath)) {
         const binaryState = await fs.promises.readFile(filePath);
-        return NextResponse.json({ id: documentIdFromQuery, state: binaryState.toString("base64") }, { status: 200 });
+        return NextResponse.json(
+          { id: documentIdFromQuery, state: binaryState.toString("base64") },
+          { status: 200 },
+        );
       } else {
-        return NextResponse.json({ error: "Document not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Document not found" },
+          { status: 404 },
+        );
       }
     }
 
@@ -25,9 +33,6 @@ export async function GET(request) {
     const filterTitle = request.nextUrl.searchParams
       .get("title")
       ?.toLowerCase();
-
-    console.log("Fetching document list...");
-    console.log("Filter Title:", filterTitle);
 
     for (const file of files) {
       if (file.endsWith(".bin")) {
@@ -44,11 +49,17 @@ export async function GET(request) {
           const saved_at = metadata.get("saved_at") || new Date().toISOString();
           const saved_by = metadata.get("saved_by") || "Unknown";
 
-          const content = ydoc.getText('quill').toString(); // Get the document content
+          const content = ydoc.getText("quill").toString(); // Get the document content
           const contentLower = content.toLowerCase();
 
           // Apply filter if title or content contains the filterTitle
-          if (filterTitle && !(title.toLowerCase().includes(filterTitle) || contentLower.includes(filterTitle))) {
+          if (
+            filterTitle &&
+            !(
+              title.toLowerCase().includes(filterTitle) ||
+              contentLower.includes(filterTitle)
+            )
+          ) {
             continue;
           }
 
@@ -61,15 +72,18 @@ export async function GET(request) {
 
           console.log(`Document ${docId} metadata loaded successfully.`);
         } catch (updateError) {
-          console.error(`Error loading metadata for ${docId}.bin:`, updateError);
+          console.error(
+            `Error loading metadata for ${docId}.bin:`,
+            updateError,
+          );
           // Optionally add a placeholder for corrupted documents or skip
-          documentList.push({
-            id: docId,
-            title: `Corrupted Document (${docId})`,
-            saved_at: new Date().toISOString(),
-            saved_by: "System",
-            corrupted: true,
-          });
+          // documentList.push({
+          //   id: docId,
+          //   title: `Corrupted Document (${docId})`,
+          //   saved_at: new Date().toISOString(),
+          //   saved_by: "System",
+          //   corrupted: true,
+          // });
         }
       }
     }
@@ -114,6 +128,45 @@ export async function POST(request) {
     console.error("Error saving document:", error);
     return NextResponse.json(
       { error: "Failed to save document" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    const documentsDir = path.join(process.cwd(), "documents");
+    const documentId = request.nextUrl.searchParams.get("id");
+
+    if (!documentId) {
+      console.error("DELETE request failed: Missing document ID.");
+      return NextResponse.json(
+        { error: "Document ID is required" },
+        { status: 400 },
+      );
+    }
+
+    const filePath = path.join(documentsDir, `${documentId}.bin`);
+
+    // Check if the file exists before attempting to delete
+    if (!fs.existsSync(filePath)) {
+      console.warn(`DELETE request: Document with ID ${documentId} not found at ${filePath}.`);
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 },
+      );
+    }
+
+    await fs.promises.unlink(filePath);
+    console.log(`Document ${documentId} deleted successfully.`);
+    return NextResponse.json(
+      { message: `Document ${documentId} deleted successfully` },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error(`Error deleting document: ${error.message}`);
+    return NextResponse.json(
+      { error: `Failed to delete document: ${error.message}` },
       { status: 500 },
     );
   }

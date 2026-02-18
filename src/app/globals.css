@@ -32,6 +32,15 @@ main div.document-header-row {
 main h1.document-title {
   text-align: left;
   margin: 0;
+  flex-grow: 1; /* Allow it to grow */
+  min-width: 0; /* Allow it to shrink */
+  white-space: nowrap; /* Prevent text from wrapping */
+  overflow: hidden; /* Hide overflow content */
+  text-overflow: ellipsis; /* Add ellipsis for overflow text */
+}
+
+main div.search-popup-overlay ul.search-results-list {
+  padding-inline-start: 0;
 }
 
 div#quill-toolbar div.create_select {
@@ -55,7 +64,7 @@ div#quill-toolbar div.create_select_custom {
   width: 10.8em;
 }
 
-div#quill-editor-component div.ql-editor p.ql-table-wrapper td.ql-table-cell {
+div#quill-editor-component div.ql-table-wrapper td.ql-table-cell {
   padding: 0 0.5em;
 }
 
@@ -375,6 +384,9 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
   padding: 0.25rem; /* Add some padding */
   flex-grow: 1; /* Allow it to grow */
   min-width: 0; /* Allow it to shrink */
+  white-space: nowrap; /* Prevent text from wrapping */
+  overflow: hidden; /* Hide overflow content */
+  text-overflow: ellipsis; /* Add ellipsis for overflow text */
 }
 /* SearchDocumentPopup Styles */
 .search-popup-overlay {
@@ -580,8 +592,8 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
 }
 
 .document-list-filter-input:focus {
-  border-color: #3b82f6; /* focus:ring-blue-500 */
-  box-shadow: 0 0 0 1px #3b82f6; /* focus:ring-2 */
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
 }
 
 .document-list-message {
@@ -593,9 +605,37 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
 }
 
 .document-list-table {
+  width: 100%; /* Explicitly make table fill its container */
   min-width: 100%; /* min-w-full */
   background-color: #ffffff; /* bg-white */
   border-collapse: collapse; /* Ensure borders are single */
+  table-layout: fixed; /* Fix table layout for consistent column widths */
+}
+
+.document-list-table th:nth-child(1),
+.document-list-table td:nth-child(1) {
+  /* Title Column */
+  width: auto; /* Allow content to dictate width, but shrink if needed */
+  white-space: nowrap; /* Prevent text from wrapping */
+  padding: 2px 0;
+}
+
+.document-list-table th:nth-child(2),
+.document-list-table td:nth-child(2) {
+  /* Saved At Column */
+  width: 180px; /* Adjust as needed */
+  white-space: normal; /* Allow text to wrap if needed */
+  overflow: visible; /* Allow overflow */
+  text-overflow: clip; /* Prevent ellipsis */
+  padding: 2px 0.5em;
+}
+
+.document-list-table th:nth-child(3),
+.document-list-table td:nth-child(3) {
+  /* Saved By Column */
+  width: 100px;
+  white-space: nowrap;
+  padding: 2px 0;
 }
 
 .document-list-th {
@@ -604,24 +644,29 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
   text-align: left; /* Default for th */
 }
 
-.document-list-th-actions {
-  text-align: right;
-}
-
 .document-list-td {
   padding: 0.5rem 1rem; /* py-2 px-4 */
   border-bottom: 1px solid #e5e7eb; /* border-b */
+  overflow: hidden; /* Hide overflow for td */
+  text-overflow: ellipsis; /* Add ellipsis for overflow text */
 }
 
-.document-list-td-actions {
-  text-align: right;
-  white-space: nowrap; /* Prevent buttons from wrapping */
+.document-list-td-saved-by {
   display: flex;
-  gap: 0.5rem; /* space-x-2 */
-  justify-content: flex-end; /* Align to right */
+  justify-content: flex-start; /* Align content to start */
+  align-items: center;
+  gap: 0.5rem; /* Space between text and button */
+  /* white-space: nowrap; // Removed from here */
 }
 
-.document-list-load-button,
+.document-list-saved-by-text {
+  flex-grow: 1; /* Allow text to take available space */
+  min-width: 0; /* Allow text to shrink below its content size */
+  white-space: nowrap; /* Prevent text from wrapping */
+  overflow: hidden; /* Hide overflow content */
+  text-overflow: ellipsis; /* Add ellipsis for overflow text */
+}
+
 .document-list-delete-button {
   padding: 0 0.5rem; /* py-0 px-2 */
   border-radius: 0.25rem; /* rounded-md */
@@ -632,14 +677,8 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.document-list-load-button {
-  background-color: #3b82f6; /* bg-blue-500 */
-}
-
-.document-list-load-button:hover {
-  background-color: #2563eb; /* hover:bg-blue-600 */
+  visibility: hidden;
+  flex-shrink: 0; /* Prevent it from shrinking */
 }
 
 .document-list-delete-button {
@@ -648,16 +687,17 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
 
 .document-list-delete-button:hover {
   background-color: #dc2626; /* hover:bg-red-600 */
+  visibility: inherit;
 }
 
 .document-list-delete-button[disabled] {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: #ef4444; /* Keep original color when disabled */
+  background-color: lightgray;
 }
 
 .document-list-delete-button[disabled]:hover {
-  background-color: #ef4444; /* Prevent hover effect when disabled */
+  background-color: gray;
 }
 
 .document-list-close-button {
@@ -944,4 +984,31 @@ main div.ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
 .heading-level-6 {
   margin-left: 50px;
   font-size: 0.75em;
+}
+
+/* Custom styles for document-list-popup */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.document-list-table tr.cursor-pointer:hover td {
+  background-color: #f0f0f0; /* Light gray background on hover */
+}
+
+/* Round delete button */
+.document-list-delete-button {
+  border-radius: 50%; /* Make it round */
+  width: 24px; /* Fixed width */
+  height: 24px; /* Fixed height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0; /* Remove padding */
+  font-size: 0.875rem; /* Adjust font size if needed */
+  flex-shrink: 0; /* Prevent it from shrinking */
+  visibility: hidden; /* Hidden by default */
+}
+
+.document-list-table tr:hover .document-list-delete-button {
+  visibility: visible; /* Show on row hover */
 }

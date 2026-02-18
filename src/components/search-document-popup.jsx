@@ -8,6 +8,7 @@ const SearchDocumentPopup = ({ isOpen, onClose }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [hasSearched, setHasSearched] = useState(false); // New state
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -28,6 +29,7 @@ const SearchDocumentPopup = ({ isOpen, onClose }) => {
       // Clear search results and query when opened
       setSearchQuery("");
       setSearchResults([]);
+      setHasSearched(false); // Reset hasSearched
     }
 
     return () => {
@@ -41,6 +43,7 @@ const SearchDocumentPopup = ({ isOpen, onClose }) => {
 
     setLoading(true);
     setError(null);
+    setHasSearched(true); // Set hasSearched to true when search is initiated
     try {
       const response = await fetch(`/api/documents?title=${searchQuery}`);
       if (!response.ok) {
@@ -102,7 +105,7 @@ const SearchDocumentPopup = ({ isOpen, onClose }) => {
         {loading && <p>Searching...</p>}
         {error && <p className="error-message">{error}</p>}
 
-        {!loading && searchResults.length === 0 && searchQuery.trim() && !error && (
+        {!loading && hasSearched && searchResults.length === 0 && !error && (
           <p>No documents found matching your query.</p>
         )}
         {!loading && searchResults.length > 0 && (

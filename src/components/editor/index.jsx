@@ -191,8 +191,6 @@ const QuillEditor = forwardRef(
         newProvider.destroy();
         setYdoc(null);
         setProvider(null);
-        quill.off("selection-change", logLocalCursorState); // Clean up debug listener
-        newProvider.awareness.off("change", awarenessChangeHandler); // Clean up debug listener
       };
     }, [
       quill,

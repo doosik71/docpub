@@ -2,12 +2,32 @@
 
 import React, { useRef, useEffect, useState } from "react";
 
+// useDebounce Hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
   const popupRef = useRef(null);
   const [documents, setDocuments] = useState([]);
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Debounced filter value
+  const debouncedFilter = useDebounce(filter, 500); // 500ms debounce delay
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -25,7 +45,8 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("keydown", handleEscapeKey);
-      fetchDocuments(); // Fetch documents when popup opens
+      // Initial fetch when popup opens, no filter applied yet
+      fetchDocuments("");
     }
 
     return () => {
@@ -34,7 +55,15 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
     };
   }, [isOpen, onClose]);
 
-  const fetchDocuments = async (currentFilter = filter) => {
+  // Effect to fetch documents when debouncedFilter changes
+  useEffect(() => {
+    if (isOpen) {
+      // Only fetch if the popup is open
+      fetchDocuments(debouncedFilter);
+    }
+  }, [debouncedFilter, isOpen]); // Rerun when debouncedFilter changes or popup opens/closes
+
+  const fetchDocuments = async (currentFilter) => {
     setLoading(true);
     setError(null);
     try {
@@ -56,8 +85,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
 
   const handleFilterChange = (event) => {
     setFilter(event.target.value);
-    // Debounce this later if performance is an issue for frequent typing
-    fetchDocuments(event.target.value);
+    // fetchDocuments will now be triggered by debouncedFilter useEffect
   };
 
   const handleLoadClick = (documentId) => {
@@ -68,17 +96,14 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
   const handleDeleteClick = async (documentId, documentTitle) => {
     if (window.confirm(`Are you sure you want to delete "${documentTitle}"?`)) {
       try {
-        const response = await fetch(
-          `http://localhost:1234/api/documents/${documentId}`,
-          {
-            method: "DELETE",
-          },
-        );
+        const response = await fetch(`/api/documents?id=${documentId}`, {
+          method: "DELETE",
+        });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         // Refresh the list after successful deletion
-        fetchDocuments();
+        fetchDocuments(filter); // Use current filter to refresh
       } catch (e) {
         console.error("Error deleting document:", e);
         setError("Failed to delete document.");
@@ -100,7 +125,6 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
             className="document-list-filter-input"
             value={filter}
             onChange={handleFilterChange}
-            onKeyUp={fetchDocuments} // Fetch on key up for filtering
           />
         </div>
 
@@ -120,34 +144,54 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
                 <th className="document-list-th">Title</th>
                 <th className="document-list-th">Saved At</th>
                 <th className="document-list-th">Saved By</th>
-                <th className="document-list-th document-list-th-actions">
-                  Actions
-                </th>
               </tr>
             </thead>
             <tbody>
               {documents.map((doc) => (
-                <tr key={doc.id}>
+                <tr
+                  key={doc.id}
+                  onClick={() => {
+                    handleLoadClick(doc.id);
+                    onClose();
+                  }}
+                  className="cursor-pointer"
+                >
                   <td className="document-list-td">{doc.title}</td>
                   <td className="document-list-td">
-                    {new Date(doc.saved_at).toLocaleString()}
+                    {(() => {
+                      const d = new Date(doc.saved_at);
+                      const datePart = d
+                        .toLocaleDateString("ko-KR", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                        })
+                        .replace(/\s/g, ""); // "2026.02.18." (모든 공백 제거)
+
+                      const timePart = d.toLocaleTimeString("ko-KR", {
+                        hour12: false,
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      }); // "11:05:20"
+
+                      return `${datePart} ${timePart}`;
+                    })()}
                   </td>
-                  <td className="document-list-td">{doc.saved_by}</td>
-                  <td className="document-list-td document-list-td-actions">
-                    <button
-                      id="load-button"
-                      onClick={() => handleLoadClick(doc.id)}
-                      className="document-list-load-button"
-                    >
-                      Open
-                    </button>
+                  <td className="document-list-td document-list-td-saved-by">
+                    <span className="document-list-saved-by-text">
+                      {doc.saved_by}
+                    </span>
                     <button
                       id="delete-button"
-                      onClick={() => handleDeleteClick(doc.id, doc.title)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(doc.id, doc.title);
+                      }}
                       className="document-list-delete-button"
-                      disabled={doc.id === "index"} // Disable if doc.id is "index"
+                      disabled={doc.id === "index"}
                     >
-                      DEL
+                      X
                     </button>
                   </td>
                 </tr>
