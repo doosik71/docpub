@@ -1,0 +1,171 @@
+/* src/components/VersionHistory.css */
+
+.version-history-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1060; /* Ensure it's on top of other content and other modals */
+}
+
+.version-history-modal {
+  background-color: var(--background);
+  color: var(--text-color); /* Use theme variable for text color */
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 700px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevents content overflow issues */
+  z-index: 1061; /* Ensure modal content is on top of its own overlay */
+}
+
+.version-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-color); /* Use theme variable for border */
+  background-color: var(
+    --header-background-color
+  ); /* Use theme variable for header background */
+}
+
+.version-history-header h2 {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.version-history-header .close-button {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-size: 1.8em;
+  cursor: pointer;
+  padding: 0 5px;
+  line-height: 1;
+}
+
+.version-history-header .close-button:hover {
+  color: var(--primary-color); /* Use theme variable for hover effect */
+}
+
+.version-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto; /* Allow scrolling if list is long */
+  flex-grow: 1; /* Take up available space */
+}
+
+.version-item {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.version-item:hover {
+  background-color: var(
+    --hover-background-color
+  ); /* Use theme variable for hover */
+}
+
+.version-item.selected {
+  background-color: var(
+    --selection-background-color
+  ); /* Use theme variable for selected */
+}
+
+.version-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.version-title {
+  font-weight: 500;
+  font-size: 1.1em;
+}
+
+.version-timestamp,
+.version-author {
+  font-size: 0.85em;
+  color: var(
+    --secondary-text-color
+  ); /* Use theme variable for secondary text */
+}
+
+.version-details {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.9em;
+}
+
+.summary-snippet {
+  margin-bottom: 15px;
+  color: var(--secondary-text-color);
+  max-height: 100px; /* Limit snippet height if needed */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre-wrap; /* Preserve line breaks in snippet */
+}
+
+.version-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.version-actions button {
+  padding: 8px 15px;
+  border: 1px solid var(--primary-color);
+  background-color: var(--primary-color);
+  color: var(--button-text-color); /* e.g., white */
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8em;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.version-actions button:hover {
+  background-color: var(--primary-hover-color);
+  border-color: var(--primary-hover-color);
+}
+
+.error-message {
+  color: var(--error-color); /* Use theme variable for error color */
+  padding: 15px 20px;
+  text-align: center;
+}
+
+/* Basic loading indicator style */
+.version-history-modal p {
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+  color: var(--secondary-text-color);
+}
+
+/* Responsive adjustments if needed */
+@media (max-width: 768px) {
+  .version-history-modal {
+    width: 95%;
+    margin: 10px;
+  }
+  .version-item,
+  .version-history-header {
+    padding: 10px 15px;
+  }
+}

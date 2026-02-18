@@ -8,6 +8,7 @@ import SearchDocumentPopup from "../../../components/search-document-popup";
 import NewDocumentPopup from "../../../components/new-document-popup";
 import GeminiPopup from "../../../components/gemini-popup";
 import TableOfContents from "../../../components/table-of-contents"; // Added import
+import VersionHistory from "../../../components/VersionHistory"; // <-- Import VersionHistory component
 import { themes } from "../../../lib/themes";
 import { streamGeminiResponse } from "../../../lib/gemini";
 import { useRouter } from "next/navigation";
@@ -28,6 +29,7 @@ export default function DocumentPage({ params }) {
   const [isNewDocumentPopupOpen, setIsNewDocumentPopupOpen] = useState(false);
   const [isGeminiPopupOpen, setIsGeminiPopupOpen] = useState(false);
   const [isTocOpen, setIsTocOpen] = useState(false); // Added state for TOC
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false); // State for Version History modal
   const [tableOfContentsHeadings, setTableOfContentsHeadings] = useState([]); // Added state for TOC headings
   const [hasSelection, setHasSelection] = useState(false); // State to pass to GeminiPopup
   const [currentSelectedText, setCurrentSelectedText] = useState(""); // Stores the selected text
@@ -185,6 +187,7 @@ export default function DocumentPage({ params }) {
   }, [tableOfContentsHeadings]);
 
   const handleMetadataUpdate = useCallback((metadata) => {
+    console.log("handleMetadataUpdate received metadata:", metadata); // Add log
     if (metadata.title) {
       setDocumentTitle(metadata.title);
     } else {
@@ -222,18 +225,81 @@ export default function DocumentPage({ params }) {
     }
   }, [initialEditorYDocState, editorRef.current, handleContentChange]);
 
-  useEffect(() => {
-    if (saveMessage) {
-      const timer = setTimeout(() => {
-        setSaveMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [saveMessage]);
+  const saveDocumentToServer = useCallback(async () => {
+    if (!editorRef.current) return;
 
-  useEffect(() => {
-    document.title = documentTitle ? documentTitle : "DocPub";
-  }, [documentTitle]);
+    const ydoc = editorRef.current.getYdoc();
+    if (!ydoc) return;
+
+    console.log("here 1");
+
+    const metadata = ydoc.getMap("metadata");
+    metadata.set("saved_at", new Date().toISOString());
+    metadata.set("saved_by", userName);
+    metadata.set("title", documentTitle); // Set the document title in YDoc metadata
+
+    console.log("here 2");
+    console.log(metadata.toJSON());
+
+    const binaryState = editorRef.current.getBinaryYDocState();
+    const quill = editorRef.current.getQuill();
+    let delta = { ops: [] }; // Initialize with a valid empty Delta structure to prevent TypeError
+    let markdownSummary = "";
+
+    if (quill) {
+      const rawDelta = quill.getContents(); // Get the raw delta
+
+      try {
+        // Deep clone to ensure delta is a plain object, handling potential class instances from Quill
+        delta = JSON.parse(JSON.stringify(rawDelta));
+
+        // Explicitly check if delta.ops is an array before converting to markdown
+        if (delta && Array.isArray(delta.ops)) {
+          markdownSummary = converter.deltaToMarkdown(delta.ops);
+        } else {
+          console.error(
+            "Invalid delta.ops format for markdown conversion:",
+            delta,
+          );
+          // If delta.ops is not an array, set markdownSummary to empty or handle error
+          markdownSummary = "";
+        }
+      } catch (e) {
+        console.error("Error processing delta for markdown conversion:", e);
+        // Fallback to empty delta and markdownSummary if processing fails
+        delta = { ops: [] };
+        markdownSummary = "";
+      }
+    } else {
+      // If quill is not available, use an empty delta
+      delta = { ops: [] };
+      console.log("Quill editor not available, using empty delta.");
+    }
+
+    // Ensure delta is not null before stringifying, default to empty ops if null
+    const deltaToSend = delta || { ops: [] };
+
+    try {
+      const response = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: paramDocumentId, // Ensure documentId is always sent for saving
+          state: binaryState.toString("base64"),
+          delta: deltaToSend, // Send the processed delta
+          markdownSummary: markdownSummary, // Send Markdown summary
+          userName: userName, // Pass userName explicitly
+          documentTitle: documentTitle, // Pass documentTitle explicitly
+        }),
+      });
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      setSaveMessage(`Document saved successfully with ID: ${result.id}`);
+    } catch (error) {
+      setSaveMessage("Failed to save document!");
+    }
+  }, [paramDocumentId, userName, editorRef, setSaveMessage]);
 
   useEffect(() => {
     const fetchDocumentState = async () => {
@@ -273,33 +339,7 @@ export default function DocumentPage({ params }) {
     const handleKeyDown = async (event) => {
       if (event.ctrlKey && event.key === "s") {
         event.preventDefault();
-        if (editorRef.current) {
-          const ydoc = editorRef.current.getYdoc();
-          if (!ydoc) return;
-
-          const metadata = ydoc.getMap("metadata");
-          metadata.set("saved_at", new Date().toISOString());
-          metadata.set("saved_by", userName);
-
-          const binaryState = editorRef.current.getBinaryYDocState();
-
-          try {
-            const response = await fetch("/api/documents", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                id: paramDocumentId,
-                state: binaryState.toString("base64"),
-              }),
-            });
-            if (!response.ok)
-              throw new Error(`HTTP error! status: ${response.status}`);
-            const result = await response.json();
-            setSaveMessage(`Document saved successfully with ID: ${result.id}`);
-          } catch (error) {
-            setSaveMessage("Failed to save document!");
-          }
-        }
+        saveDocumentToServer(); // Call the centralized function
       } else if (event.ctrlKey && event.key === "o") {
         event.preventDefault();
         setIsDocumentListOpen(true);
@@ -343,7 +383,7 @@ export default function DocumentPage({ params }) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [editorRef.current, documentTitle, userName, paramDocumentId]);
+  }, [editorRef.current, saveDocumentToServer]); // Add saveDocumentToServer as a dependency
 
   const handleNewDocument = () => {
     setIsNewDocumentPopupOpen(true);
@@ -358,29 +398,8 @@ export default function DocumentPage({ params }) {
   };
 
   const handleSaveDocument = async () => {
-    if (editorRef.current) {
-      const ydoc = editorRef.current.getYdoc();
-      if (!ydoc) return;
-
-      const metadata = ydoc.getMap("metadata");
-      metadata.set("saved_at", new Date().toISOString());
-      metadata.set("saved_by", userName);
-
-      const binaryState = editorRef.current.getBinaryYDocState();
-      try {
-        const response = await fetch("/api/documents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ state: binaryState.toString("base64") }),
-        });
-        if (!response.ok)
-          throw new Error(`HTTP error! status: ${response.status}`);
-        const result = await response.json();
-        setSaveMessage(`Document saved successfully with ID: ${result.id}`);
-      } catch (error) {
-        setSaveMessage("Failed to save document!");
-      }
-    }
+    console.log(handleSaveDocument);
+    saveDocumentToServer(); // Call the centralized function
   };
 
   const handleDownloadMarkdown = () => {
@@ -389,6 +408,7 @@ export default function DocumentPage({ params }) {
 
       if (ydoc) {
         const deltaOps = ydoc.getText("quill").toDelta();
+        console.log(deltaOps);
         const markdown = converter.deltaToMarkdown(deltaOps);
         const blob = new Blob([markdown], { type: "text/markdown" });
         const url = URL.createObjectURL(blob);
@@ -398,6 +418,69 @@ export default function DocumentPage({ params }) {
         a.click();
         URL.revokeObjectURL(url);
       }
+    }
+  };
+
+  // Handlers for Version History
+  const handleVersionHistoryOpen = () => setIsVersionHistoryOpen(true);
+  const handleVersionHistoryClose = () => setIsVersionHistoryOpen(false);
+
+  const handleViewMarkdown = async (timestamp) => {
+    try {
+      const response = await fetch(
+        `/api/documents/version-content?id=${paramDocumentId}&timestamp=${timestamp}&format=markdown`,
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to fetch markdown: ${response.statusText}`);
+      }
+      const markdownContent = await response.text();
+      // Display markdown content, e.g., in a new tab or modal
+      // For simplicity, opening in a new tab
+      const blob = new Blob([markdownContent], {
+        type: "text/markdown;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error viewing markdown version:", error);
+      setSaveMessage("Failed to view markdown version.");
+    }
+  };
+
+  const handleRestoreVersion = async (timestamp) => {
+    try {
+      const response = await fetch(
+        `/api/documents/version-content?id=${paramDocumentId}&timestamp=${timestamp}&format=binary`,
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to fetch binary: ${response.statusText}`);
+      }
+      // Assuming the API returns JSON like { state: "base64EncodedBinary" }
+      const data = await response.json();
+      const base64Data = data.state;
+
+      // Decode base64 to Uint8Array
+      // atob() is typically browser-only, but in Next.js server components or edge functions it might behave differently.
+      // For client-side code, atob should be available globally.
+      const binaryData = Uint8Array.from(atob(base64Data), (c) =>
+        c.charCodeAt(0),
+      );
+
+      if (
+        editorRef.current &&
+        typeof editorRef.current.loadYjsState === "function"
+      ) {
+        editorRef.current.loadYjsState(binaryData); // Load the Yjs state
+        setSaveMessage(`Restored to version ${timestamp}`);
+        setIsVersionHistoryOpen(false); // Close history after restoring
+      } else {
+        console.error("Editor does not have loadYjsState method.");
+        setSaveMessage("Failed to restore version: Editor method missing.");
+      }
+    } catch (error) {
+      console.error("Error restoring version:", error);
+      setSaveMessage("Failed to restore version.");
     }
   };
 
@@ -526,15 +609,17 @@ ${fullDocumentContent}
   const handleTitleChange = (event) => {
     const newTitle = event.target.value;
     setDocumentTitle(newTitle);
-    if (editorRef.current?.setDocumentTitle) {
-      editorRef.current.setDocumentTitle(newTitle);
-    }
+    // Removed: editorRef.current.setDocumentTitle(newTitle);
   };
 
   const handleTitleBlur = () => {
     setIsEditingTitle(false);
     if (documentTitle.trim() === "") {
       setDocumentTitle("DocPub");
+    }
+    // Update the Ydoc metadata with the final title after editing is complete
+    if (editorRef.current?.setDocumentTitle) {
+      editorRef.current.setDocumentTitle(documentTitle);
     }
   };
 
@@ -544,6 +629,10 @@ ${fullDocumentContent}
       setIsEditingTitle(false);
       if (documentTitle.trim() === "") {
         setDocumentTitle("DocPub");
+      }
+      // Update the Ydoc metadata with the final title after editing is complete
+      if (editorRef.current?.setDocumentTitle) {
+        editorRef.current.setDocumentTitle(documentTitle);
       }
     }
   };
@@ -686,6 +775,28 @@ ${fullDocumentContent}
                 />
               </svg>
             </button>
+            {/* Version History Button */}
+            <button
+              id="version-history-button"
+              onClick={handleVersionHistoryOpen}
+              className="header-button"
+              aria-label="Version History"
+              title="View Version History"
+            >
+              <svg
+                className="header-button-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </button>
             <button
               id="menu-button"
               onClick={handleMenuToggle}
@@ -749,6 +860,13 @@ ${fullDocumentContent}
         onSend={handleSendToGemini}
         hasSelection={hasSelection}
         currentSelectedText={currentSelectedText}
+      />
+      <VersionHistory
+        isOpen={isVersionHistoryOpen}
+        onClose={handleVersionHistoryClose}
+        documentId={paramDocumentId}
+        onViewMarkdown={handleViewMarkdown}
+        onRestoreVersion={handleRestoreVersion}
       />
       {saveMessage && <div className="save-message">{saveMessage}</div>}
       {isTocOpen && (

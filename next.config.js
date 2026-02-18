@@ -16,7 +16,10 @@ const nextConfig = {
       },
     ];
   },
-  webpack(config) {
+  webpack(config, { isServer }) {
+    if (isServer) {
+      config.externals.push('yjs');
+    }
     config.resolve.alias['@'] = path.join(__dirname, 'src'); // Use path.join for consistency
     return config;
   },

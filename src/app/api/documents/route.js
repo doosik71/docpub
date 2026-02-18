@@ -2,20 +2,23 @@ import { NextResponse } from "next/server";
 import * as fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import * as Y from "yjs"; // Import Y
+import * as Y from "yjs";
+import converter from "@workiom/delta-md-converter"; // New import
 
 export async function GET(request) {
   try {
-    const documentsDir = path.join(process.cwd(), "documents");
-    await fs.promises.mkdir(documentsDir, { recursive: true }); // Ensure directory exists
+    const documentsRoot = path.join(process.cwd(), "documents");
+    await fs.promises.mkdir(documentsRoot, { recursive: true }); // Ensure root directory exists
 
     const documentIdFromQuery = request.nextUrl.searchParams.get("id");
 
-    // 로딩할 문서 id가 명시되어 있으면,
+    // If a specific document ID is requested, load its latest state
     if (documentIdFromQuery) {
-      const filePath = path.join(documentsDir, `${documentIdFromQuery}.bin`);
-      if (fs.existsSync(filePath)) {
-        const binaryState = await fs.promises.readFile(filePath);
+      const docPath = path.join(documentsRoot, documentIdFromQuery.toString());
+      const latestBinaryFilePath = path.join(docPath, "latest.bin");
+
+      if (fs.existsSync(latestBinaryFilePath)) {
+        const binaryState = await fs.promises.readFile(latestBinaryFilePath);
         return NextResponse.json(
           { id: documentIdFromQuery, state: binaryState.toString("base64") },
           { status: 200 },
@@ -28,28 +31,45 @@ export async function GET(request) {
       }
     }
 
-    const files = await fs.promises.readdir(documentsDir);
+    // Otherwise, list all documents
+    const documentFolders = await fs.promises.readdir(documentsRoot, {
+      withFileTypes: true,
+    });
     const documentList = [];
     const filterTitle = request.nextUrl.searchParams
       .get("title")
       ?.toLowerCase();
 
-    for (const file of files) {
-      if (file.endsWith(".bin")) {
-        const docId = file.replace(".bin", "");
-        const filePath = path.join(documentsDir, file);
-        const binaryState = await fs.promises.readFile(filePath);
+    for (const dirent of documentFolders) {
+      if (dirent.isDirectory()) {
+        const docId = dirent.name;
+        const docPath = path.join(documentsRoot, docId);
+        const latestBinaryFilePath = path.join(docPath, "latest.bin");
 
-        const ydoc = new Y.Doc();
-        try {
-          Y.applyUpdate(ydoc, new Uint8Array(binaryState));
+        if (fs.existsSync(latestBinaryFilePath)) {
+          const binaryState = await fs.promises.readFile(latestBinaryFilePath);
 
-          const metadata = ydoc.getMap("metadata");
-          const title = metadata.get("title") || "Untitled Document";
-          const saved_at = metadata.get("saved_at") || new Date().toISOString();
-          const saved_by = metadata.get("saved_by") || "Unknown";
+          const ydoc = new Y.Doc();
+          let title = "Untitled Document";
+          let saved_at = new Date().toISOString();
+          let saved_by = "Unknown";
+          let content = "";
 
-          const content = ydoc.getText("quill").toString(); // Get the document content
+          try {
+            Y.applyUpdate(ydoc, new Uint8Array(binaryState));
+            const metadata = ydoc.getMap("metadata");
+            title = metadata.get("title") || title;
+            saved_at = metadata.get("saved_at") || saved_at;
+            saved_by = metadata.get("saved_by") || saved_by;
+            content = ydoc.getText("quill").toString(); // Get the document content
+          } catch (updateError) {
+            console.warn(
+              `Warning: Could not fully reconstruct YDoc for document ${docId} when listing. Metadata might be incomplete. Error:`,
+              updateError.message,
+            );
+            // If YDoc reconstruction fails, we still add the document with fallback info
+          }
+
           const contentLower = content.toLowerCase();
 
           // Apply filter if title or content contains the filterTitle
@@ -70,20 +90,9 @@ export async function GET(request) {
             saved_by,
           });
 
-          console.log(`Document ${docId} metadata loaded successfully.`);
-        } catch (updateError) {
-          console.error(
-            `Error loading metadata for ${docId}.bin:`,
-            updateError,
+          console.log(
+            `Document ${docId} metadata loaded successfully for listing.`,
           );
-          // Optionally add a placeholder for corrupted documents or skip
-          // documentList.push({
-          //   id: docId,
-          //   title: `Corrupted Document (${docId})`,
-          //   saved_at: new Date().toISOString(),
-          //   saved_by: "System",
-          //   corrupted: true,
-          // });
         }
       }
     }
@@ -103,7 +112,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const { id, state } = await request.json(); // Destructure 'id' as well
+    const { id, state, delta, markdownSummary, userName, documentTitle } = await request.json(); // Destructure new fields
 
     if (!state) {
       return NextResponse.json(
@@ -113,16 +122,64 @@ export async function POST(request) {
     }
 
     const binaryState = Buffer.from(state, "base64");
-    const docIdToSave = id || uuidv4(); // Use provided id or generate a new one
-    const documentsDir = path.join(process.cwd(), "documents"); // Assuming 'documents' is at project root
+    const docIdToSave = id || uuidv4();
+    const documentsDir = path.join(process.cwd(), "documents");
+    const docPath = path.join(documentsDir, docIdToSave.toString()); // Directory for this document
 
-    // Ensure the documents directory exists
-    await fs.promises.mkdir(documentsDir, { recursive: true });
+    // Ensure document's directory exists (e.g., documents/documentId/)
+    await fs.promises.mkdir(docPath, { recursive: true });
 
-    const filePath = path.join(documentsDir, `${docIdToSave}.bin`);
-    await fs.promises.writeFile(filePath, binaryState);
+    // Ensure versions directory exists (e.g., documents/documentId/versions/)
+    const versionsDir = path.join(docPath, "versions");
+    await fs.promises.mkdir(versionsDir, { recursive: true });
 
+    // Save the latest binary state
+    const latestBinaryFilePath = path.join(docPath, "latest.bin"); // Renamed from documentId.bin
+    await fs.promises.writeFile(latestBinaryFilePath, binaryState);
+
+    // Create a timestamp for the new version
+    const versionTimestamp = new Date().toISOString().replace(/[:.-]/g, "_"); // e.g., 2023-10-27T10_30_00_000Z
+
+    // Save this specific version's binary state
+    const versionBinaryFilePath = path.join(
+      versionsDir,
+      `${versionTimestamp}.bin`,
+    );
+    await fs.promises.writeFile(versionBinaryFilePath, binaryState);
+
+    let finalTitle = documentTitle || "Untitled Document";
+    if (!documentTitle) {
+      console.warn(`Warning: documentTitle not provided for document ${docIdToSave}. Using default "Untitled Document".`);
+    }
+
+    let finalAuthor = userName || "Unknown";
+    if (!userName) {
+      console.warn(`Warning: userName not provided for document ${docIdToSave}. Using default "Unknown".`);
+    }
+
+    const versionMetadata = {
+      timestamp: versionTimestamp,
+      author: finalAuthor,
+      title: finalTitle,
+      summary_markdown: markdownSummary || "", // Store the provided markdown summary
+      delta: delta || {}, // Store the provided Delta JSON
+    };
+
+    const versionMetadataFilePath = path.join(
+      versionsDir,
+      `${versionTimestamp}.json`,
+    );
+    await fs.promises.writeFile(
+      versionMetadataFilePath,
+      JSON.stringify(versionMetadata, null, 2),
+    );
+
+    console.log(`Saving document ${docIdToSave} with:`);
+    console.log(`  Title: ${finalTitle}`);
+    console.log(`  Author: ${finalAuthor}`);
+    console.log(`  Timestamp: ${versionTimestamp}`);
     console.log(`Document ${docIdToSave} saved successfully.`);
+    console.log(`New version ${versionTimestamp} created.`);
     return NextResponse.json({ id: docIdToSave }, { status: 200 });
   } catch (error) {
     console.error("Error saving document:", error);
@@ -135,7 +192,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
-    const documentsDir = path.join(process.cwd(), "documents");
+    const documentsRoot = path.join(process.cwd(), "documents");
     const documentId = request.nextUrl.searchParams.get("id");
 
     if (!documentId) {
@@ -146,27 +203,198 @@ export async function DELETE(request) {
       );
     }
 
-    const filePath = path.join(documentsDir, `${documentId}.bin`);
+    const docPath = path.join(documentsRoot, documentId.toString());
 
-    // Check if the file exists before attempting to delete
-    if (!fs.existsSync(filePath)) {
-      console.warn(`DELETE request: Document with ID ${documentId} not found at ${filePath}.`);
+    // Check if the document directory exists before attempting to delete
+    if (!fs.existsSync(docPath)) {
+      console.warn(
+        `DELETE request: Document directory for ID ${documentId} not found at ${docPath}.`,
+      );
       return NextResponse.json(
         { error: "Document not found" },
         { status: 404 },
       );
     }
 
-    await fs.promises.unlink(filePath);
-    console.log(`Document ${documentId} deleted successfully.`);
+    // Delete the entire document directory recursively
+    await fs.promises.rm(docPath, { recursive: true, force: true });
+    console.log(`Document directory ${docPath} deleted successfully.`);
     return NextResponse.json(
-      { message: `Document ${documentId} deleted successfully` },
+      {
+        message: `Document ${documentId} and its versions deleted successfully`,
+      },
       { status: 200 },
     );
   } catch (error) {
     console.error(`Error deleting document: ${error.message}`);
     return NextResponse.json(
       { error: `Failed to delete document: ${error.message}` },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET_VERSIONS(request) {
+  try {
+    const documentsRoot = path.join(process.cwd(), "documents");
+    const documentId = request.nextUrl.searchParams.get("id");
+
+    if (!documentId) {
+      return NextResponse.json(
+        { error: "Document ID is required" },
+        { status: 400 },
+      );
+    }
+
+    const versionsDir = path.join(
+      documentsRoot,
+      documentId.toString(),
+      "versions",
+    );
+
+    if (!fs.existsSync(versionsDir)) {
+      return NextResponse.json([], { status: 200 }); // No versions yet
+    }
+
+    const versionFiles = await fs.promises.readdir(versionsDir);
+    const versionList = [];
+
+    for (const file of versionFiles) {
+      if (file.endsWith(".json")) {
+        const filePath = path.join(versionsDir, file);
+        try {
+          const content = await fs.promises.readFile(filePath, "utf-8");
+          const metadata = JSON.parse(content);
+          versionList.push(metadata);
+        } catch (error) {
+          console.error(`Error reading version metadata file ${file}:`, error);
+        }
+      }
+    }
+
+    // Sort versions by timestamp (newest first)
+    versionList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    return NextResponse.json(versionList, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching document versions:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch document versions" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET_VERSION_CONTENT(request) {
+  try {
+    const documentsRoot = path.join(process.cwd(), "documents");
+    const documentId = request.nextUrl.searchParams.get("id");
+    const versionTimestamp = request.nextUrl.searchParams.get("timestamp");
+    const format = request.nextUrl.searchParams.get("format"); // 'binary', 'delta', 'markdown'
+
+    if (!documentId || !versionTimestamp || !format) {
+      return NextResponse.json(
+        { error: "Document ID, version timestamp, and format are required" },
+        { status: 400 },
+      );
+    }
+
+    const versionsDir = path.join(
+      documentsRoot,
+      documentId.toString(),
+      "versions",
+    );
+
+    if (!fs.existsSync(versionsDir)) {
+      return NextResponse.json(
+        { error: "Document or versions not found" },
+        { status: 404 },
+      );
+    }
+
+    const versionMetadataFilePath = path.join(
+      versionsDir,
+      `${versionTimestamp}.json`,
+    );
+
+    if (!fs.existsSync(versionMetadataFilePath)) {
+      return NextResponse.json(
+        { error: "Version metadata not found" },
+        { status: 404 },
+      );
+    }
+
+    const metadataContent = await fs.promises.readFile(
+      versionMetadataFilePath,
+      "utf-8",
+    );
+    const versionMetadata = JSON.parse(metadataContent);
+
+    switch (format) {
+      case "binary": {
+        const versionBinaryFilePath = path.join(
+          versionsDir,
+          `${versionTimestamp}.bin`,
+        );
+        if (!fs.existsSync(versionBinaryFilePath)) {
+          return NextResponse.json(
+            { error: "Version binary state not found" },
+            { status: 404 },
+          );
+        }
+        const binaryState = await fs.promises.readFile(versionBinaryFilePath);
+        return NextResponse.json(
+          {
+            id: documentId,
+            timestamp: versionTimestamp,
+            state: binaryState.toString("base64"),
+          },
+          { status: 200 },
+        );
+      }
+      case "delta": {
+        if (!versionMetadata.delta) {
+          return NextResponse.json(
+            { error: "Delta content not available for this version" },
+            { status: 404 },
+          );
+        }
+        return NextResponse.json(
+          {
+            id: documentId,
+            timestamp: versionTimestamp,
+            delta: versionMetadata.delta,
+          },
+          { status: 200 },
+        );
+      }
+      case "markdown": {
+        if (!versionMetadata.summary_markdown) {
+          return NextResponse.json(
+            { error: "Markdown content not available for this version" },
+            { status: 404 },
+          );
+        }
+        return new NextResponse(versionMetadata.summary_markdown, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/markdown; charset=utf-8",
+          },
+        });
+      }
+      default:
+        return NextResponse.json(
+          {
+            error:
+              "Invalid format requested. Must be 'binary', 'delta', or 'markdown'.",
+          },
+          { status: 400 },
+        );
+    }
+  } catch (error) {
+    console.error("Error fetching specific document version content:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch specific document version content" },
       { status: 500 },
     );
   }
