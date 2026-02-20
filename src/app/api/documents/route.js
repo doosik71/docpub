@@ -3,7 +3,6 @@ import * as fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import * as Y from "yjs";
-import converter from "@workiom/delta-md-converter"; // New import
 
 export async function GET(request) {
   try {
@@ -50,17 +49,17 @@ export async function GET(request) {
           const binaryState = await fs.promises.readFile(latestBinaryFilePath);
 
           const ydoc = new Y.Doc();
-          let title = "Untitled Document";
-          let saved_at = new Date().toISOString();
-          let saved_by = "Unknown";
-          let content = "";
+          let title = null;
+          let saved_at = null;
+          let saved_by = null;
+          let content = null;
 
           try {
-            Y.applyUpdate(ydoc, new Uint8Array(binaryState));
+            Y.applyUpdate(ydoc, binaryState);
             const metadata = ydoc.getMap("metadata");
-            title = metadata.get("title") || title;
-            saved_at = metadata.get("saved_at") || saved_at;
-            saved_by = metadata.get("saved_by") || saved_by;
+            title = metadata.get("title");
+            saved_at = metadata.get("saved_at");
+            saved_by = metadata.get("saved_by");
             content = ydoc.getText("quill").toString(); // Get the document content
           } catch (updateError) {
             console.warn(
@@ -69,6 +68,10 @@ export async function GET(request) {
             );
             // If YDoc reconstruction fails, we still add the document with fallback info
           }
+
+          console.log(title);
+          console.log(saved_at);
+          console.log(saved_by);
 
           const contentLower = content.toLowerCase();
 
@@ -82,6 +85,10 @@ export async function GET(request) {
           ) {
             continue;
           }
+
+          console.log(title);
+          console.log(saved_at);
+          console.log(saved_by);
 
           documentList.push({
             id: docId,
@@ -121,6 +128,9 @@ export async function POST(request) {
       );
     }
 
+    // console.log(documentTitle);
+    // console.log(userName);
+
     const binaryState = Buffer.from(state, "base64");
     const docIdToSave = id || uuidv4();
     const documentsDir = path.join(process.cwd(), "documents");
@@ -138,12 +148,13 @@ export async function POST(request) {
     await fs.promises.writeFile(latestBinaryFilePath, binaryState);
 
     // Create a timestamp for the new version
-    const versionTimestamp = new Date().toISOString().replace(/[:.-]/g, "_"); // e.g., 2023-10-27T10_30_00_000Z
+    const isoTimestamp = new Date().toISOString(); // Standard ISO 8601 format
+    const versionFilename = isoTimestamp.replace(/[:.-]/g, "_"); // Filename-safe format
 
     // Save this specific version's binary state
     const versionBinaryFilePath = path.join(
       versionsDir,
-      `${versionTimestamp}.bin`,
+      `${versionFilename}.bin`,
     );
     await fs.promises.writeFile(versionBinaryFilePath, binaryState);
 
@@ -158,7 +169,7 @@ export async function POST(request) {
     }
 
     const versionMetadata = {
-      timestamp: versionTimestamp,
+      timestamp: isoTimestamp, // Store the standard ISO string
       author: finalAuthor,
       title: finalTitle,
       summary_markdown: markdownSummary || "", // Store the provided markdown summary
@@ -167,7 +178,7 @@ export async function POST(request) {
 
     const versionMetadataFilePath = path.join(
       versionsDir,
-      `${versionTimestamp}.json`,
+      `${versionFilename}.json`,
     );
     await fs.promises.writeFile(
       versionMetadataFilePath,
@@ -177,9 +188,10 @@ export async function POST(request) {
     console.log(`Saving document ${docIdToSave} with:`);
     console.log(`  Title: ${finalTitle}`);
     console.log(`  Author: ${finalAuthor}`);
-    console.log(`  Timestamp: ${versionTimestamp}`);
+    console.log(`  Timestamp: ${isoTimestamp}`);
     console.log(`Document ${docIdToSave} saved successfully.`);
-    console.log(`New version ${versionTimestamp} created.`);
+    console.log(`New version ${isoTimestamp} created.`);
+
     return NextResponse.json({ id: docIdToSave }, { status: 200 });
   } catch (error) {
     console.error("Error saving document:", error);

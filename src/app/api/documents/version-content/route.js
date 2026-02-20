@@ -14,18 +14,22 @@ export async function GET(request) {
     });
   }
 
+  // Convert the incoming ISO timestamp to the filename-safe format
+  const filenameTimestamp = timestamp.replace(/[:.-]/g, "_");
+
   const versionsDir = path.join(process.cwd(), 'documents', documentId, 'versions');
 
   try {
     if (format === 'binary') {
-      const binaryPath = path.join(versionsDir, `${timestamp}.bin`);
+      const binaryPath = path.join(versionsDir, `${filenameTimestamp}.bin`);
       const binaryContent = await fs.readFile(binaryPath);
-      return new Response(binaryContent.toString('base64'), { // Return base64 encoded binary
+      const responseBody = { state: binaryContent.toString('base64') };
+      return new Response(JSON.stringify(responseBody), {
         status: 200,
-        headers: { 'Content-Type': 'text/plain' }, // Or application/octet-stream if you prefer
+        headers: { 'Content-Type': 'application/json' },
       });
     } else if (format === 'delta' || format === 'markdown') {
-      const jsonPath = path.join(versionsDir, `${timestamp}.json`);
+      const jsonPath = path.join(versionsDir, `${filenameTimestamp}.json`);
       const jsonContent = await fs.readFile(jsonPath, 'utf8');
       const metadata = JSON.parse(jsonContent);
 

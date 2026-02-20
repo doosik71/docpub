@@ -187,7 +187,6 @@ export default function DocumentPage({ params }) {
   }, [tableOfContentsHeadings]);
 
   const handleMetadataUpdate = useCallback((metadata) => {
-    console.log("handleMetadataUpdate received metadata:", metadata); // Add log
     if (metadata.title) {
       setDocumentTitle(metadata.title);
     } else {
@@ -231,20 +230,24 @@ export default function DocumentPage({ params }) {
     const ydoc = editorRef.current.getYdoc();
     if (!ydoc) return;
 
-    console.log("here 1");
-
     const metadata = ydoc.getMap("metadata");
+    metadata.set("title", documentTitle.trim());
     metadata.set("saved_at", new Date().toISOString());
     metadata.set("saved_by", userName);
-    metadata.set("title", documentTitle); // Set the document title in YDoc metadata
 
-    console.log("here 2");
     console.log(metadata.toJSON());
 
     const binaryState = editorRef.current.getBinaryYDocState();
     const quill = editorRef.current.getQuill();
     let delta = { ops: [] }; // Initialize with a valid empty Delta structure to prevent TypeError
     let markdownSummary = "";
+
+    // Helper to correctly encode Uint8Array to Base64 in the browser
+    const toBase64 = (arr) => {
+      return btoa(
+        arr.reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+    };
 
     if (quill) {
       const rawDelta = quill.getContents(); // Get the raw delta
@@ -285,13 +288,14 @@ export default function DocumentPage({ params }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: paramDocumentId, // Ensure documentId is always sent for saving
-          state: binaryState.toString("base64"),
+          state: toBase64(binaryState), // Correctly encode to Base64
           delta: deltaToSend, // Send the processed delta
           markdownSummary: markdownSummary, // Send Markdown summary
           userName: userName, // Pass userName explicitly
           documentTitle: documentTitle, // Pass documentTitle explicitly
         }),
       });
+
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       const result = await response.json();
@@ -299,7 +303,7 @@ export default function DocumentPage({ params }) {
     } catch (error) {
       setSaveMessage("Failed to save document!");
     }
-  }, [paramDocumentId, userName, editorRef, setSaveMessage]);
+  }, [paramDocumentId, userName, editorRef, setSaveMessage, documentTitle]);
 
   useEffect(() => {
     const fetchDocumentState = async () => {
@@ -398,7 +402,6 @@ export default function DocumentPage({ params }) {
   };
 
   const handleSaveDocument = async () => {
-    console.log(handleSaveDocument);
     saveDocumentToServer(); // Call the centralized function
   };
 
@@ -469,13 +472,13 @@ export default function DocumentPage({ params }) {
 
       if (
         editorRef.current &&
-        typeof editorRef.current.loadYjsState === "function"
+        typeof editorRef.current.applyYDocUpdate === "function"
       ) {
-        editorRef.current.loadYjsState(binaryData); // Load the Yjs state
+        editorRef.current.applyYDocUpdate(binaryData); // Load the Yjs state
         setSaveMessage(`Restored to version ${timestamp}`);
         setIsVersionHistoryOpen(false); // Close history after restoring
       } else {
-        console.error("Editor does not have loadYjsState method.");
+        console.error("Editor does not have applyYDocUpdate method.");
         setSaveMessage("Failed to restore version: Editor method missing.");
       }
     } catch (error) {
@@ -609,17 +612,20 @@ ${fullDocumentContent}
   const handleTitleChange = (event) => {
     const newTitle = event.target.value;
     setDocumentTitle(newTitle);
-    // Removed: editorRef.current.setDocumentTitle(newTitle);
   };
 
   const handleTitleBlur = () => {
     setIsEditingTitle(false);
-    if (documentTitle.trim() === "") {
-      setDocumentTitle("DocPub");
-    }
+
+    const newTitle = documentTitle.trim();
+
+    setDocumentTitle(newTitle !== "" ? newTitle : "DocPub");
+
+    console.log(documentTitle);
+
     // Update the Ydoc metadata with the final title after editing is complete
     if (editorRef.current?.setDocumentTitle) {
-      editorRef.current.setDocumentTitle(documentTitle);
+      editorRef.current.setDocumentTitle(newTitle);
     }
   };
 
@@ -627,6 +633,7 @@ ${fullDocumentContent}
     if (event.key === "Enter") {
       event.preventDefault();
       setIsEditingTitle(false);
+
       if (documentTitle.trim() === "") {
         setDocumentTitle("DocPub");
       }
@@ -655,7 +662,7 @@ ${fullDocumentContent}
             />
           ) : (
             <h1 className="document-title" onClick={handleTitleClick}>
-              {documentTitle}
+              {documentTitle.trim() !== "" ? documentTitle : "DocPub"}
             </h1>
           )}
           <div className="header-buttons-container">

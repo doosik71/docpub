@@ -19,7 +19,7 @@ export const hocuspocusConfiguration = {
       console.log(`Loading document: ${documentId} from ${filePath}`);
       const encodedState = fs.readFileSync(filePath);
       try {
-        Y.applyUpdate(ydoc, new Uint8Array(encodedState));
+        Y.applyUpdate(ydoc, encodedState);
       } catch (updateError) {
         console.error(`[Hocuspocus] Error applying Y.Doc update for ${documentId}.bin:`, updateError);
         console.error(`[Hocuspocus] Corrupted file content for ${documentId}.bin. Length: ${encodedState.length}`);

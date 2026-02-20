@@ -17,7 +17,7 @@ async function loadYDoc(documentId) {
   if (fs.existsSync(filePath)) {
     const encodedState = fs.readFileSync(filePath);
     try {
-      Y.applyUpdate(ydoc, new Uint8Array(encodedState));
+      Y.applyUpdate(ydoc, encodedState);
     } catch (updateError) {
       console.error(
         `[PDF Export] Error applying Y.Doc update for ${documentId}.bin:`,

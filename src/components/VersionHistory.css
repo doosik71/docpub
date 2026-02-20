@@ -6,16 +6,19 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  background-color: rgba(0, 0, 0, 0.5);
+  /* Semi-transparent background */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1060; /* Ensure it's on top of other content and other modals */
+  z-index: 1060;
+  /* Ensure it's on top of other content and other modals */
 }
 
 .version-history-modal {
   background-color: var(--background);
-  color: var(--text-color); /* Use theme variable for text color */
+  color: var(--text-color);
+  /* Use theme variable for text color */
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   width: 90%;
@@ -23,8 +26,10 @@
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Prevents content overflow issues */
-  z-index: 1061; /* Ensure modal content is on top of its own overlay */
+  overflow: hidden;
+  /* Prevents content overflow issues */
+  z-index: 1061;
+  /* Ensure modal content is on top of its own overlay */
 }
 
 .version-history-header {
@@ -32,10 +37,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px 20px;
-  border-bottom: 1px solid var(--border-color); /* Use theme variable for border */
-  background-color: var(
-    --header-background-color
-  ); /* Use theme variable for header background */
+  border-bottom: 1px solid var(--border-color);
+  /* Use theme variable for border */
+  background-color: var(--header-background-color);
+  /* Use theme variable for header background */
 }
 
 .version-history-header h2 {
@@ -55,15 +60,18 @@
 }
 
 .version-history-header .close-button:hover {
-  color: var(--primary-color); /* Use theme variable for hover effect */
+  color: var(--primary-color);
+  /* Use theme variable for hover effect */
 }
 
 .version-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  overflow-y: auto; /* Allow scrolling if list is long */
-  flex-grow: 1; /* Take up available space */
+  overflow-y: auto;
+  /* Allow scrolling if list is long */
+  flex-grow: 1;
+  /* Take up available space */
 }
 
 .version-item {
@@ -74,15 +82,13 @@
 }
 
 .version-item:hover {
-  background-color: var(
-    --hover-background-color
-  ); /* Use theme variable for hover */
+  background-color: var(--hover-background-color);
+  /* Use theme variable for hover */
 }
 
 .version-item.selected {
-  background-color: var(
-    --selection-background-color
-  ); /* Use theme variable for selected */
+  background-color: var(--selection-background-color);
+  /* Use theme variable for selected */
 }
 
 .version-summary {
@@ -99,25 +105,23 @@
 .version-timestamp,
 .version-author {
   font-size: 0.85em;
-  color: var(
-    --secondary-text-color
-  ); /* Use theme variable for secondary text */
+  color: var(--secondary-text-color);
+  /* Use theme variable for secondary text */
 }
 
 .version-details {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid var(--border-color);
-  font-size: 0.9em;
+  margin-top: 1em;
 }
 
 .summary-snippet {
   margin-bottom: 15px;
   color: var(--secondary-text-color);
-  max-height: 100px; /* Limit snippet height if needed */
+  max-height: 100px;
+  /* Limit snippet height if needed */
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: pre-wrap; /* Preserve line breaks in snippet */
+  white-space: pre-wrap;
+  /* Preserve line breaks in snippet */
 }
 
 .version-actions {
@@ -130,7 +134,8 @@
   padding: 8px 15px;
   border: 1px solid var(--primary-color);
   background-color: var(--primary-color);
-  color: var(--button-text-color); /* e.g., white */
+  color: var(--button-text-color);
+  /* e.g., white */
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.8em;
@@ -145,15 +150,16 @@
 }
 
 .error-message {
-  color: var(--error-color); /* Use theme variable for error color */
+  color: var(--error-color);
+  /* Use theme variable for error color */
   padding: 15px 20px;
   text-align: center;
 }
 
 /* Basic loading indicator style */
 .version-history-modal p {
-  text-align: center;
-  padding: 20px;
+  text-align: left;
+  /* padding: 20px; */
   font-style: italic;
   color: var(--secondary-text-color);
 }
@@ -164,8 +170,39 @@
     width: 95%;
     margin: 10px;
   }
+
   .version-item,
   .version-history-header {
     padding: 10px 15px;
   }
+}
+
+/* Refactored styles from inline */
+
+.version-history-body {
+  display: flex;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.version-list-pane {
+  flex: 1;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+}
+
+.version-details-pane {
+  flex: 2;
+  overflow-y: auto;
+  padding: 15px 20px;
+}
+
+.version-placeholder-message {
+  padding: 20px;
+  text-align: center;
+}
+
+/* Add margin-top to the actions button within the summary list item */
+.version-summary .version-actions {
+  margin-top: 5px;
 }

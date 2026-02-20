@@ -154,12 +154,11 @@ const QuillEditor = forwardRef(
         }
 
         const metadataObserver = () => {
-          console.log("Metadata updated:", metadata.toJSON()); // Keep this for debugging
-
           if (onMetadataUpdateProp) {
             onMetadataUpdateProp({
               title: metadata.get("title"),
               saved_at: metadata.get("saved_at"),
+              saved_by: metadata.get("saved_by"),
             });
           }
         };
@@ -293,8 +292,13 @@ const QuillEditor = forwardRef(
           return null;
         },
         applyYDocUpdate: (binaryState) => {
-          if (ydocRef.current && binaryState) {
+          if (ydocRef.current && binaryState && quill) {
+            // Apply the update to the Y.js document
             Y.applyUpdate(ydocRef.current, binaryState);
+        
+            // Manually force-sync Quill with the new state of the Y.js document
+            const newDelta = ydocRef.current.getText('quill').toDelta();
+            quill.setContents(newDelta, 'api'); // Use 'api' source to avoid loops
           }
         },
       }),

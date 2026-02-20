@@ -19,13 +19,14 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
         const url = `/api/documents/versions?id=${documentId}`;
         console.log("Fetching versions from URL:", url); // Log the URL
         const response = await fetch(url);
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`HTTP error! status: ${response.status}, text: ${errorText}`); // Log status and text
           throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
+
         const data = await response.json();
-        console.log("Successfully fetched versions:", data); // Log successful data
         setVersions(data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))); // Sort by newest first
       } catch (e) {
         console.error("Failed to fetch versions (catch block):", e); // Log catch block errors
@@ -66,11 +67,11 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
         {error && <p className="error-message">{error}</p>}
 
         {!loading && !error && (
-          <div style={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
-            <div style={{ flex: '1', overflowY: 'auto', borderRight: '1px solid var(--border-color)' }}>
+          <div className="version-history-body">
+            <div className="version-list-pane">
               <ul className="version-list">
                 {versions.length === 0 ? (
-                  <p style={{ padding: '20px', textAlign: 'center' }}>No versions found for this document.</p>
+                  <p className="version-placeholder-message">No versions found for this document.</p>
                 ) : (
                   versions.map((version) => (
                     <li
@@ -89,8 +90,8 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
                             {version.summary_markdown.substring(0, 100)}{version.summary_markdown.length > 100 ? '...' : ''}
                           </p>
                         )}
-                        <div className="version-actions" style={{ marginTop: '5px' }}>
-                            <button onClick={(e) => { e.stopPropagation(); onViewMarkdown(version.timestamp); }}>View Markdown</button>
+                        <div className="version-actions">
+                          <button onClick={(e) => { e.stopPropagation(); onViewMarkdown(version.timestamp); }}>View Markdown</button>
                         </div>
                       </div>
                     </li>
@@ -99,7 +100,7 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
               </ul>
             </div>
 
-            <div style={{ flex: '2', overflowY: 'auto', padding: '15px 20px' }}>
+            <div className="version-details-pane">
               {selectedVersion ? (
                 <div className="version-details">
                   <h3>Selected Version Details:</h3>
@@ -111,7 +112,7 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
                   </div>
                 </div>
               ) : (
-                <p style={{ textAlign: 'center', padding: '20px' }}>Select a version from the left to see details.</p>
+                <p className="version-placeholder-message">Select a version from the left to see details.</p>
               )}
             </div>
           </div>

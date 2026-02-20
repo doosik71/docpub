@@ -7,6 +7,16 @@ export const themes = [
     colors: {
       "--background": "#ffffff",
       "--foreground": "#171717",
+      "--text-color": "#171717", /* Use foreground */
+      "--header-background-color": "#f8f8f8", /* Slightly off-white */
+      "--border-color": "#e0e0e0", /* Light gray border */
+      "--primary-color": "#007bff", /* A standard blue */
+      "--primary-hover-color": "#0056b3", /* Darker blue on hover */
+      "--hover-background-color": "#f0f0f0", /* Light gray for hover */
+      "--selection-background-color": "#e9ecef", /* Slightly darker gray for selection */
+      "--secondary-text-color": "#6c757d", /* Muted gray for secondary text */
+      "--button-text-color": "#ffffff", /* White text for primary buttons */
+      "--error-color": "#dc3545", /* Red for errors */
     },
   },
   {
