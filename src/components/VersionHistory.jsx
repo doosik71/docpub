@@ -24,7 +24,6 @@ const VersionHistory = ({
         setLoading(true);
         setError(null);
         const url = `/api/documents/versions?id=${documentId}`;
-        console.log("Fetching versions from URL:", url); // Log the URL
         const response = await fetch(url);
 
         if (!response.ok) {

@@ -29,17 +29,11 @@ export async function GET(request) {
     "versions",
   );
 
-  console.log("versionsDir");
-  console.log(versionsDir);
-
   try {
     if (format === "binary") {
       const binaryPath = path.join(versionsDir, `${filenameTimestamp}.bin`);
       const binaryContent = await fs.readFile(binaryPath);
       const responseBody = { state: binaryContent.toString("base64") };
-
-      console.log(binaryPath);
-      console.log(JSON.stringify(responseBody));
 
       return new Response(JSON.stringify(responseBody), {
         status: 200,
@@ -49,8 +43,6 @@ export async function GET(request) {
       const jsonPath = path.join(versionsDir, `${filenameTimestamp}.json`);
       const jsonContent = await fs.readFile(jsonPath, "utf8");
       const metadata = JSON.parse(jsonContent);
-
-      console.log(metadata);
 
       if (format === "delta") {
         return new Response(JSON.stringify(metadata.delta), {

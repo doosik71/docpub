@@ -69,10 +69,6 @@ export async function GET(request) {
             // If YDoc reconstruction fails, we still add the document with fallback info
           }
 
-          console.log(title);
-          console.log(saved_at);
-          console.log(saved_by);
-
           const contentLower = content.toLowerCase();
 
           // Apply filter if title or content contains the filterTitle
@@ -86,20 +82,12 @@ export async function GET(request) {
             continue;
           }
 
-          console.log(title);
-          console.log(saved_at);
-          console.log(saved_by);
-
           documentList.push({
             id: docId,
             title,
             saved_at,
             saved_by,
           });
-
-          console.log(
-            `Document ${docId} metadata loaded successfully for listing.`,
-          );
         }
       }
     }
@@ -119,7 +107,8 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const { id, state, delta, markdownSummary, userName, documentTitle } = await request.json(); // Destructure new fields
+    const { id, state, delta, markdownSummary, userName, documentTitle } =
+      await request.json(); // Destructure new fields
 
     if (!state) {
       return NextResponse.json(
@@ -127,9 +116,6 @@ export async function POST(request) {
         { status: 400 },
       );
     }
-
-    // console.log(documentTitle);
-    // console.log(userName);
 
     const binaryState = Buffer.from(state, "base64");
     const docIdToSave = id || uuidv4();
@@ -160,12 +146,16 @@ export async function POST(request) {
 
     let finalTitle = documentTitle || "Untitled Document";
     if (!documentTitle) {
-      console.warn(`Warning: documentTitle not provided for document ${docIdToSave}. Using default "Untitled Document".`);
+      console.warn(
+        `Warning: documentTitle not provided for document ${docIdToSave}. Using default "Untitled Document".`,
+      );
     }
 
     let finalAuthor = userName || "Unknown";
     if (!userName) {
-      console.warn(`Warning: userName not provided for document ${docIdToSave}. Using default "Unknown".`);
+      console.warn(
+        `Warning: userName not provided for document ${docIdToSave}. Using default "Unknown".`,
+      );
     }
 
     const versionMetadata = {
@@ -185,18 +175,66 @@ export async function POST(request) {
       JSON.stringify(versionMetadata, null, 2),
     );
 
-    console.log(`Saving document ${docIdToSave} with:`);
-    console.log(`  Title: ${finalTitle}`);
-    console.log(`  Author: ${finalAuthor}`);
-    console.log(`  Timestamp: ${isoTimestamp}`);
-    console.log(`Document ${docIdToSave} saved successfully.`);
-    console.log(`New version ${isoTimestamp} created.`);
-
     return NextResponse.json({ id: docIdToSave }, { status: 200 });
   } catch (error) {
     console.error("Error saving document:", error);
     return NextResponse.json(
       { error: "Failed to save document" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(request) {
+  try {
+    const { id, timestamp } = await request.json();
+
+    if (!id || !timestamp) {
+      return NextResponse.json(
+        { error: "Document ID and timestamp are required for restore." },
+        { status: 400 },
+      );
+    }
+
+    const documentsRoot = path.join(process.cwd(), "documents");
+    const docPath = path.join(documentsRoot, id.toString());
+
+    // Convert the incoming ISO timestamp to the filename-safe format
+    const filenameTimestamp = timestamp.replace(/[:.-]/g, "_");
+
+    const sourceVersionBinaryPath = path.join(
+      docPath,
+      "versions",
+      `${filenameTimestamp}.bin`,
+    );
+    const destinationLatestBinaryPath = path.join(docPath, "latest.bin");
+
+    if (!fs.existsSync(sourceVersionBinaryPath)) {
+      return NextResponse.json(
+        { error: `Version not found for timestamp: ${timestamp}` },
+        { status: 404 },
+      );
+    }
+
+    const historicalBinaryState = await fs.promises.readFile(
+      sourceVersionBinaryPath,
+    );
+
+    await fs.promises.writeFile(
+      destinationLatestBinaryPath,
+      historicalBinaryState,
+    );
+
+    return NextResponse.json(
+      {
+        message: `Document ${id} successfully restored to version ${timestamp}.`,
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("Error restoring document version:", error);
+    return NextResponse.json(
+      { error: "Failed to restore document version" },
       { status: 500 },
     );
   }
@@ -230,7 +268,7 @@ export async function DELETE(request) {
 
     // Delete the entire document directory recursively
     await fs.promises.rm(docPath, { recursive: true, force: true });
-    console.log(`Document directory ${docPath} deleted successfully.`);
+
     return NextResponse.json(
       {
         message: `Document ${documentId} and its versions deleted successfully`,

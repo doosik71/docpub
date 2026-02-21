@@ -43,6 +43,7 @@ export default function DocumentPage({ params }) {
   const editorRef = useRef(null);
   const [initialEditorYDocState, setInitialEditorYDocState] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [editorKey, setEditorKey] = useState(0); // Key for remounting the editor
 
   // Debounce utility function
   const debounce = useCallback((func, delay) => {
@@ -163,13 +164,11 @@ export default function DocumentPage({ params }) {
       }
     });
 
-    // console.log("Extracted headings (attempt 4):", headings);
     return headings;
   }, []);
 
   const handleContentChange = useCallback(
     (delta) => {
-      // console.log("handleContentChange received delta:", delta); // Debug log
       const extracted = extractHeadings(delta);
       setTableOfContentsHeadings(extracted);
     },
@@ -181,11 +180,6 @@ export default function DocumentPage({ params }) {
     [debounce, handleContentChange],
   );
 
-  // Debug log for tableOfContentsHeadings updates
-  useEffect(() => {
-    // console.log("tableOfContentsHeadings updated:", tableOfContentsHeadings);
-  }, [tableOfContentsHeadings]);
-
   const handleMetadataUpdate = useCallback((metadata) => {
     if (metadata.title) {
       setDocumentTitle(metadata.title);
@@ -194,35 +188,43 @@ export default function DocumentPage({ params }) {
     }
   }, []);
 
-  useEffect(function applyThemeStyles() {
-    const selectedTheme = themes.find((t) => t.id === theme);
-    if (selectedTheme) {
-      for (const [key, value] of Object.entries(selectedTheme.colors)) {
-        document.documentElement.style.setProperty(key, value);
+  useEffect(
+    function applyThemeStyles() {
+      const selectedTheme = themes.find((t) => t.id === theme);
+      if (selectedTheme) {
+        for (const [key, value] of Object.entries(selectedTheme.colors)) {
+          document.documentElement.style.setProperty(key, value);
+        }
       }
-    }
-  }, [theme]);
+    },
+    [theme],
+  );
 
-  useEffect(function focusTitleInputOnEdit() {
-    if (isEditingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-    }
-  }, [isEditingTitle]);
-
-  useEffect(function initializeTocOnLoad() {
-    // This effect ensures the TOC is generated immediately after the document loads
-    // and the editor is initialized with its content.
-    if (initialEditorYDocState !== null && editorRef.current) {
-      const quillInstance = editorRef.current.getQuill();
-      if (quillInstance) {
-        // Get the current contents from Quill and pass to the non-debounced handler
-        // to populate the TOC immediately.
-        const currentContents = quillInstance.getContents();
-        // console.log("Initial load: Triggering handleContentChange with:", currentContents);
-        handleContentChange(currentContents);
+  useEffect(
+    function focusTitleInputOnEdit() {
+      if (isEditingTitle && titleInputRef.current) {
+        titleInputRef.current.focus();
       }
-    }
-  }, [initialEditorYDocState, editorRef.current, handleContentChange]);
+    },
+    [isEditingTitle],
+  );
+
+  useEffect(
+    function initializeTocOnLoad() {
+      // This effect ensures the TOC is generated immediately after the document loads
+      // and the editor is initialized with its content.
+      if (initialEditorYDocState !== null && editorRef.current) {
+        const quillInstance = editorRef.current.getQuill();
+        if (quillInstance) {
+          // Get the current contents from Quill and pass to the non-debounced handler
+          // to populate the TOC immediately.
+          const currentContents = quillInstance.getContents();
+          handleContentChange(currentContents);
+        }
+      }
+    },
+    [initialEditorYDocState, editorRef.current, handleContentChange],
+  );
 
   const saveDocumentToServer = useCallback(async () => {
     if (!editorRef.current) return;
@@ -234,8 +236,6 @@ export default function DocumentPage({ params }) {
     metadata.set("title", documentTitle.trim());
     metadata.set("saved_at", new Date().toISOString());
     metadata.set("saved_by", userName);
-
-    console.log(metadata.toJSON());
 
     const binaryState = editorRef.current.getBinaryYDocState();
     const quill = editorRef.current.getQuill();
@@ -276,7 +276,6 @@ export default function DocumentPage({ params }) {
     } else {
       // If quill is not available, use an empty delta
       delta = { ops: [] };
-      console.log("Quill editor not available, using empty delta.");
     }
 
     // Ensure delta is not null before stringifying, default to empty ops if null
@@ -305,89 +304,95 @@ export default function DocumentPage({ params }) {
     }
   }, [paramDocumentId, userName, editorRef, setSaveMessage, documentTitle]);
 
-  useEffect(function fetchDocumentOnLoad() {
-    const fetchDocumentState = async () => {
-      if (!paramDocumentId) {
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
+  useEffect(
+    function fetchDocumentOnLoad() {
+      const fetchDocumentState = async () => {
+        if (!paramDocumentId) {
+          setIsLoading(false);
+          return;
+        }
+        setIsLoading(true);
 
-      try {
-        const response = await fetch(`/api/documents?id=${paramDocumentId}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            setSaveMessage(`Starting new document: ${paramDocumentId}`);
-            setInitialEditorYDocState(null);
+        try {
+          const response = await fetch(`/api/documents?id=${paramDocumentId}`);
+          if (!response.ok) {
+            if (response.status === 404) {
+              setSaveMessage(`Starting new document: ${paramDocumentId}`);
+              setInitialEditorYDocState(null);
+            } else {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
           } else {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            setInitialEditorYDocState(Buffer.from(data.state, "base64"));
+            setSaveMessage(`Document ${paramDocumentId} loaded.`);
           }
-        } else {
-          const data = await response.json();
-          setInitialEditorYDocState(Buffer.from(data.state, "base64"));
-          setSaveMessage(`Document ${paramDocumentId} loaded.`);
+        } catch (error) {
+          console.error(`Error fetching document ${paramDocumentId}:`, error);
+          setSaveMessage(`Failed to load document: ${paramDocumentId}`);
+          setInitialEditorYDocState(null);
+        } finally {
+          setIsLoading(false);
         }
-      } catch (error) {
-        console.error(`Error fetching document ${paramDocumentId}:`, error);
-        setSaveMessage(`Failed to load document: ${paramDocumentId}`);
-        setInitialEditorYDocState(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      };
 
-    fetchDocumentState();
-  }, [paramDocumentId]);
+      fetchDocumentState();
+    },
+    [paramDocumentId],
+  );
 
-  useEffect(function setupKeyboardShortcuts() {
-    const handleKeyDownShortcut = async (event) => {
-      if (event.ctrlKey && event.key === "s") {
-        event.preventDefault();
-        saveDocumentToServer(); // Call the centralized function
-      } else if (event.ctrlKey && event.key === "o") {
-        event.preventDefault();
-        setIsDocumentListOpen(true);
-      } else if (event.ctrlKey && event.key === "g") {
-        event.preventDefault();
+  useEffect(
+    function setupKeyboardShortcuts() {
+      const handleKeyDownShortcut = async (event) => {
+        if (event.ctrlKey && event.key === "s") {
+          event.preventDefault();
+          saveDocumentToServer(); // Call the centralized function
+        } else if (event.ctrlKey && event.key === "o") {
+          event.preventDefault();
+          setIsDocumentListOpen(true);
+        } else if (event.ctrlKey && event.key === "g") {
+          event.preventDefault();
 
-        // 코드 중복 작성을 피하고 가급적 기존 함수를 사용할 것.
-        handleGeminiClick();
-      } else if (event.ctrlKey && ["1", "2", "3", "4"].includes(event.key)) {
-        event.preventDefault();
-        if (editorRef.current) {
-          const quill = editorRef.current.getQuill();
-          if (quill) {
-            const range = quill.getSelection();
-            if (range) {
-              const headingLevel = parseInt(event.key, 10);
-              quill.formatLine(
-                range.index,
-                range.length,
-                "header",
-                headingLevel,
-              );
+          // 코드 중복 작성을 피하고 가급적 기존 함수를 사용할 것.
+          handleGeminiClick();
+        } else if (event.ctrlKey && ["1", "2", "3", "4"].includes(event.key)) {
+          event.preventDefault();
+          if (editorRef.current) {
+            const quill = editorRef.current.getQuill();
+            if (quill) {
+              const range = quill.getSelection();
+              if (range) {
+                const headingLevel = parseInt(event.key, 10);
+                quill.formatLine(
+                  range.index,
+                  range.length,
+                  "header",
+                  headingLevel,
+                );
+              }
+            }
+          }
+        } else if (event.ctrlKey && event.key === "0") {
+          event.preventDefault();
+          if (editorRef.current) {
+            const quill = editorRef.current.getQuill();
+            if (quill) {
+              const range = quill.getSelection();
+              if (range) {
+                quill.removeFormat(range.index, range.length); // Remove all formats
+              }
             }
           }
         }
-      } else if (event.ctrlKey && event.key === "0") {
-        event.preventDefault();
-        if (editorRef.current) {
-          const quill = editorRef.current.getQuill();
-          if (quill) {
-            const range = quill.getSelection();
-            if (range) {
-              quill.removeFormat(range.index, range.length); // Remove all formats
-            }
-          }
-        }
-      }
-    };
+      };
 
-    window.addEventListener("keydown", handleKeyDownShortcut);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDownShortcut);
-    };
-  }, [editorRef.current, saveDocumentToServer]); // Add saveDocumentToServer as a dependency
+      window.addEventListener("keydown", handleKeyDownShortcut);
+      return () => {
+        window.removeEventListener("keydown", handleKeyDownShortcut);
+      };
+    },
+    [editorRef.current, saveDocumentToServer],
+  ); // Add saveDocumentToServer as a dependency
 
   const handleNewDocument = () => {
     setIsNewDocumentPopupOpen(true);
@@ -411,7 +416,6 @@ export default function DocumentPage({ params }) {
 
       if (ydoc) {
         const deltaOps = ydoc.getText("quill").toDelta();
-        console.log(deltaOps);
         const markdown = converter.deltaToMarkdown(deltaOps);
         const blob = new Blob([markdown], { type: "text/markdown" });
         const url = URL.createObjectURL(blob);
@@ -452,64 +456,61 @@ export default function DocumentPage({ params }) {
   };
 
   const handleRestoreVersion = async (timestamp) => {
-    console.log("handleRestoreVersion");
-    console.log(timestamp);
+    setIsLoading(true); // Indicate loading state
 
     try {
-      const response = await fetch(
+      // 1. Call the server-side API to update latest.bin with the restored version
+      const updateLatestResponse = await fetch(`/api/documents`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: paramDocumentId, timestamp: timestamp }),
+      });
+
+      if (!updateLatestResponse.ok) {
+        const errorText = await updateLatestResponse.text();
+        throw new Error(
+          `Failed to update latest.bin on server: ${updateLatestResponse.status} - ${errorText}`,
+        );
+      }
+
+      // 2. Fetch the binary content of the restored version (again, but now to update the client editor)
+      const fetchBinaryResponse = await fetch(
         `/api/documents/version-content?id=${paramDocumentId}&timestamp=${timestamp}&format=binary`,
       );
-      if (!response.ok) {
-        throw new Error(`Failed to fetch binary: ${response.statusText}`);
+      if (!fetchBinaryResponse.ok) {
+        throw new Error(
+          `Failed to fetch restored binary content: ${fetchBinaryResponse.statusText}`,
+        );
       }
-      // Assuming the API returns JSON like { state: "base64EncodedBinary" }
-      const data = await response.json();
+      const data = await fetchBinaryResponse.json();
       const base64Data = data.state;
-
-      // Decode base64 to Uint8Array
-      // atob() is typically browser-only, but in Next.js server components or edge functions it might behave differently.
-      // For client-side code, atob should be available globally.
       const binaryData = Uint8Array.from(atob(base64Data), (c) =>
         c.charCodeAt(0),
       );
 
-      if (
-        editorRef.current &&
-        typeof editorRef.current.applyYDocUpdate === "function"
-      ) {
-        // setInitialEditorYDocState(Buffer.from(data.state, "base64"));
-
-        console.log(
-          "title before=",
-          editorRef.current?.getYdoc()?.getMap("metadata")?.get("title"),
-        );
-        editorRef.current.applyYDocUpdate(binaryData); // Load the Yjs state
-        console.log(
-          "title after=",
-          editorRef.current?.getYdoc()?.getMap("metadata")?.get("title"),
-        );
-
-        // After applying the update, retrieve the new title from the YDoc and update state
-        const restoredYDoc = editorRef.current.getYdoc();
-        if (restoredYDoc) {
-          const metadata = restoredYDoc.getMap("metadata");
-          const newTitle = metadata.get("title") || "DocPub"; // Default if title is not found
-
-          // console.log(metadata);
-          // console.log(newTitle);
-
-          setDocumentTitle(newTitle);
+      // 3. Apply this binary data directly to the active editor
+      if (editorRef.current && editorRef.current.applyYDocUpdate) {
+        editorRef.current.applyYDocUpdate(binaryData);
+        // Optionally, update the title display if metadata is part of YDoc and applyYDocUpdate handles it
+        const ydoc = editorRef.current.getYdoc();
+        if (ydoc) {
+          const metadata = ydoc.getMap("metadata");
+          setDocumentTitle(metadata.get("title") || "DocPub");
         }
-
-        setSaveMessage(`Restored to version ${timestamp}`);
-        setIsVersionHistoryOpen(false); // Close history after restoring
       } else {
-        console.error("Editor does not have applyYDocUpdate method.");
-        setSaveMessage("Failed to restore version: Editor method missing.");
+        console.warn(
+          "Editor ref or applyYDocUpdate method not available. Cannot update editor directly.",
+        );
+        // Fallback: If direct update fails, the user needs to know.
       }
+
+      setSaveMessage(`Document successfully restored to version ${timestamp}.`);
+      setIsVersionHistoryOpen(false); // Close history modal
     } catch (error) {
       console.error("Error restoring version:", error);
-      setSaveMessage("Failed to restore version.");
+      setSaveMessage(`Failed to restore version: ${error.message}`);
+    } finally {
+      setIsLoading(false); // Ensure loading state is reset
     }
   };
 
@@ -646,8 +647,6 @@ ${fullDocumentContent}
     const newTitle = documentTitle.trim();
 
     setDocumentTitle(newTitle !== "" ? newTitle : "DocPub");
-
-    console.log(documentTitle);
 
     // Update the Ydoc metadata with the final title after editing is complete
     if (editorRef.current?.setDocumentTitle) {
@@ -856,6 +855,7 @@ ${fullDocumentContent}
       <div id="editor-wrapper-page">
         {!isLoading && (
           <DynamicQuillEditor
+            key={editorKey} // Add key prop here
             editorRefProp={editorRef}
             userName={userName}
             onMetadataUpdateProp={handleMetadataUpdate}

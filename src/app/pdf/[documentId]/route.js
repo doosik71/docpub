@@ -26,7 +26,6 @@ async function loadYDoc(documentId) {
       return null; // Indicate corrupted or unreadable document
     }
   } else {
-    console.log(`[PDF Export] Document not found: ${documentId}.bin`);
     return null; // Indicate document not found
   }
   return ydoc;

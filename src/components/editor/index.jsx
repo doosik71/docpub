@@ -140,9 +140,11 @@ const QuillEditor = forwardRef(
 
       const initializeCollaboration = () => {
         // Initialize Y.Doc only if it hasn't been initialized or if documentId changes
+        // Or if initialYDocState has changed, indicating a new document state should be loaded
         if (
           !ydocRef.current ||
-          ydocRef.current._documentId !== activeDocumentId
+          ydocRef.current._documentId !== activeDocumentId ||
+          (initialYDocState && !hasAppliedInitialState.current) // Reinitialize if initialYDocState is new and not applied
         ) {
           if (ydocRef.current) {
             // Clean up previous Ydoc resources if switching document
@@ -154,7 +156,19 @@ const QuillEditor = forwardRef(
           newYdoc._documentId = activeDocumentId; // Custom property to track active document
           ydocRef.current = newYdoc;
 
-          // Initialize metadata only if it's a completely new Ydoc
+          if (initialYDocState) {
+            try {
+              Y.applyUpdate(ydocRef.current, initialYDocState);
+              hasAppliedInitialState.current = true; // Mark as applied
+            } catch (e) {
+              console.error(
+                "Failed to apply initial YDoc state during initialization:",
+                e,
+              );
+            }
+          }
+
+          // Initialize metadata only if it's a completely new Ydoc (or after initial state applied)
           const metadata = ydocRef.current.getMap("metadata");
           if (!metadata.has("saved_at")) {
             metadata.set("saved_at", new Date().toISOString());
@@ -205,25 +219,14 @@ const QuillEditor = forwardRef(
         }
       };
       return initializeCollaboration();
-    }, [quill, activeDocumentId, onMetadataUpdateProp, userName]);
+    }, [
+      quill,
+      activeDocumentId,
+      onMetadataUpdateProp,
+      userName,
+      initialYDocState,
+    ]); // Added initialYDocState to dependencies
 
-    // Effect to apply initialYDocState to the existing ydoc
-    const applyInitialYDocState = () => {
-      if (
-        ydocRef.current &&
-        initialYDocState &&
-        !hasAppliedInitialState.current
-      ) {
-        try {
-          console.log("Applying initial YDoc state...");
-          Y.applyUpdate(ydocRef.current, initialYDocState);
-          hasAppliedInitialState.current = true; // Mark as applied
-        } catch (e) {
-          console.error("Failed to apply initial YDoc state:", e);
-        }
-      }
-    };
-    useEffect(applyInitialYDocState, [initialYDocState]); // Only depends on initialYDocState
     const updateUserAwareness = () => {
       if (provider && userName) {
         provider.awareness.setLocalStateField("user", {
@@ -316,15 +319,7 @@ const QuillEditor = forwardRef(
         },
         applyYDocUpdate: (binaryState) => {
           if (ydocRef.current && binaryState && quill) {
-            console.log(
-              "Editor (applyYDocUpdate): YDoc Title BEFORE Y.applyUpdate:",
-              ydocRef.current.getMap("metadata").get("title"),
-            );
             Y.applyUpdate(ydocRef.current, binaryState);
-            console.log(
-              "Editor (applyYDocUpdate): YDoc Title AFTER Y.applyUpdate:",
-              ydocRef.current.getMap("metadata").get("title"),
-            );
 
             // Manually force-sync Quill with the new state of the Y.js document
             const newDelta = ydocRef.current.getText("quill").toDelta();
