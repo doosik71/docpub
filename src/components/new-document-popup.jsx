@@ -66,7 +66,7 @@ const NewDocumentPopup = ({ isOpen, onClose }) => {
             className="search-input-field"
             value={newId}
             onChange={handleIdChange}
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === "Enter") handleCreate();
             }}
           />

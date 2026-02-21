@@ -93,12 +93,14 @@ const QuillEditor = forwardRef(
 
       setQuill(quillInstance);
 
-      return () => {
+      const cleanupQuillEditor = () => {
         setQuill(null);
         if (quillContainerNode) {
           quillContainerNode.innerHTML = "";
         }
       };
+
+      return cleanupQuillEditor;
     }, [quillContainerNode]); // Only run when the container node changes
 
     // Effect to handle ql-table button click
@@ -113,7 +115,7 @@ const QuillEditor = forwardRef(
       );
 
       if (qlTableButton && createSelectDiv) {
-        const toggleDisplay = () => {
+        const toggleTableDisplay = () => {
           if (createSelectDiv.style.display === "inline") {
             createSelectDiv.style.display = "none";
           } else {
@@ -121,11 +123,12 @@ const QuillEditor = forwardRef(
           }
         };
 
-        qlTableButton.addEventListener("click", toggleDisplay);
+        qlTableButton.addEventListener("click", toggleTableDisplay);
 
-        return () => {
-          qlTableButton.removeEventListener("click", toggleDisplay);
+        const cleanupTableButton = () => {
+          qlTableButton.removeEventListener("click", toggleTableDisplay);
         };
+        return cleanupTableButton;
       }
     }, [quill]);
 
@@ -135,71 +138,82 @@ const QuillEditor = forwardRef(
         return;
       }
 
-      // Initialize Y.Doc only if it hasn't been initialized or if documentId changes
-      if (!ydocRef.current || ydocRef.current._documentId !== activeDocumentId) {
-        if (ydocRef.current) {
-          // Clean up previous Ydoc resources if switching document
-          // (This part needs careful consideration if providers are still active)
-          // For now, assume a full re-initialization is fine.
-          // In a more complex app, you might want to disconnect awareness or provider explicitly.
-        }
-        const newYdoc = new Y.Doc();
-        newYdoc._documentId = activeDocumentId; // Custom property to track active document
-        ydocRef.current = newYdoc;
-
-        // Initialize metadata only if it's a completely new Ydoc
-        const metadata = ydocRef.current.getMap("metadata");
-        if (!metadata.has("saved_at")) {
-          metadata.set("saved_at", new Date().toISOString());
-        }
-
-        const metadataObserver = () => {
-          if (onMetadataUpdateProp) {
-            onMetadataUpdateProp({
-              title: metadata.get("title"),
-              saved_at: metadata.get("saved_at"),
-              saved_by: metadata.get("saved_by"),
-            });
+      const initializeCollaboration = () => {
+        // Initialize Y.Doc only if it hasn't been initialized or if documentId changes
+        if (
+          !ydocRef.current ||
+          ydocRef.current._documentId !== activeDocumentId
+        ) {
+          if (ydocRef.current) {
+            // Clean up previous Ydoc resources if switching document
+            // (This part needs careful consideration if providers are still active)
+            // For now, assume a full re-initialization is fine.
+            // In a more complex app, you might want to disconnect awareness or provider explicitly.
           }
-        };
-        metadata.observe(metadataObserver);
-        // Initial call to ensure parent gets metadata immediately
-        metadataObserver();
+          const newYdoc = new Y.Doc();
+          newYdoc._documentId = activeDocumentId; // Custom property to track active document
+          ydocRef.current = newYdoc;
 
-        const newProvider = new HocuspocusProvider({
-          url: "ws://localhost:3000/hocuspocus",
-          name: activeDocumentId, // Use activeDocumentId for provider name
-          document: ydocRef.current,
-        });
-        setProvider(newProvider);
+          // Initialize metadata only if it's a completely new Ydoc
+          const metadata = ydocRef.current.getMap("metadata");
+          if (!metadata.has("saved_at")) {
+            metadata.set("saved_at", new Date().toISOString());
+          }
 
-        const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-        newProvider.awareness.setLocalStateField("user", {
-          name: userName,
-          color: localUserColor,
-        });
+          const handleMetadataUpdate = () => {
+            if (onMetadataUpdateProp) {
+              onMetadataUpdateProp({
+                title: metadata.get("title"),
+                saved_at: metadata.get("saved_at"),
+                saved_by: metadata.get("saved_by"),
+              });
+            }
+          };
+          metadata.observe(handleMetadataUpdate);
+          // Initial call to ensure parent gets metadata immediately
+          handleMetadataUpdate();
 
-        const yQuillModule = require("y-quill");
-        const yQuillBinding = new yQuillModule.QuillBinding(
-          ydocRef.current.getText("quill"),
-          quill,
-          newProvider.awareness,
-        );
+          const newProvider = new HocuspocusProvider({
+            url: "ws://localhost:3000/hocuspocus",
+            name: activeDocumentId, // Use activeDocumentId for provider name
+            document: ydocRef.current,
+          });
+          setProvider(newProvider);
 
-        return () => {
-          metadata.unobserve(metadataObserver);
-          yQuillBinding.destroy();
-          newProvider.destroy();
-          ydocRef.current = null; // Clear the ref
-          setProvider(null);
-          hasAppliedInitialState.current = false; // Reset flag for next document load
-        };
-      }
+          const localUserColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+          newProvider.awareness.setLocalStateField("user", {
+            name: userName,
+            color: localUserColor,
+          });
+
+          const yQuillModule = require("y-quill");
+          const yQuillBinding = new yQuillModule.QuillBinding(
+            ydocRef.current.getText("quill"),
+            quill,
+            newProvider.awareness,
+          );
+
+          const cleanupCollaboration = () => {
+            metadata.unobserve(handleMetadataUpdate);
+            yQuillBinding.destroy();
+            newProvider.destroy();
+            ydocRef.current = null; // Clear the ref
+            setProvider(null);
+            hasAppliedInitialState.current = false; // Reset flag for next document load
+          };
+          return cleanupCollaboration;
+        }
+      };
+      return initializeCollaboration();
     }, [quill, activeDocumentId, onMetadataUpdateProp, userName]);
 
     // Effect to apply initialYDocState to the existing ydoc
-    useEffect(() => {
-      if (ydocRef.current && initialYDocState && !hasAppliedInitialState.current) {
+    const applyInitialYDocState = () => {
+      if (
+        ydocRef.current &&
+        initialYDocState &&
+        !hasAppliedInitialState.current
+      ) {
         try {
           console.log("Applying initial YDoc state...");
           Y.applyUpdate(ydocRef.current, initialYDocState);
@@ -208,9 +222,9 @@ const QuillEditor = forwardRef(
           console.error("Failed to apply initial YDoc state:", e);
         }
       }
-    }, [initialYDocState]); // Only depends on initialYDocState
-    // Effect to update awareness when userName changes
-    useEffect(() => {
+    };
+    useEffect(applyInitialYDocState, [initialYDocState]); // Only depends on initialYDocState
+    const updateUserAwareness = () => {
       if (provider && userName) {
         provider.awareness.setLocalStateField("user", {
           name: userName,
@@ -219,12 +233,13 @@ const QuillEditor = forwardRef(
             `#${Math.floor(Math.random() * 16777215).toString(16)}`,
         });
       }
-    }, [userName, provider]);
+    };
+    // Effect to update awareness when userName changes
+    useEffect(updateUserAwareness, [userName, provider]);
 
-    // Effect to update saved_at timestamp on content change and handle TOC IDs
-    useEffect(() => {
+    const handleContentChanges = () => {
       if (quill && ydocRef.current && quillContainerNode) {
-        const handler = (delta, oldDelta, source) => {
+        const textChangeHandler = (delta, oldDelta, source) => {
           // Removed: `metadata.set("saved_at", new Date().toISOString());`
           // This responsibility is now with the parent (page.jsx) for explicit save actions.
 
@@ -259,12 +274,19 @@ const QuillEditor = forwardRef(
             }
           });
         };
-        quill.on("text-change", handler);
+        quill.on("text-change", textChangeHandler);
         return () => {
-          quill.off("text-change", handler);
+          quill.off("text-change", textChangeHandler);
         };
       }
-    }, [quill, ydocRef.current, onContentChangeProp, quillContainerNode]);
+    };
+    // Effect to update saved_at timestamp on content change and handle TOC IDs
+    useEffect(handleContentChanges, [
+      quill,
+      ydocRef.current,
+      onContentChangeProp,
+      quillContainerNode,
+    ]);
 
     // Expose methods and states to parent component
     useImperativeHandle(
@@ -279,7 +301,8 @@ const QuillEditor = forwardRef(
         getQuill: () => quill,
         getContents: () => quill?.getContents(),
         setContents: (delta) => quill?.setContents(delta),
-        getDocumentTitle: () => ydocRef.current?.getMap("metadata").get("title"),
+        getDocumentTitle: () =>
+          ydocRef.current?.getMap("metadata").get("title"),
         setDocumentTitle: (newTitle) => {
           if (ydocRef.current) {
             ydocRef.current.getMap("metadata").set("title", newTitle);
@@ -293,12 +316,19 @@ const QuillEditor = forwardRef(
         },
         applyYDocUpdate: (binaryState) => {
           if (ydocRef.current && binaryState && quill) {
-            // Apply the update to the Y.js document
+            console.log(
+              "Editor (applyYDocUpdate): YDoc Title BEFORE Y.applyUpdate:",
+              ydocRef.current.getMap("metadata").get("title"),
+            );
             Y.applyUpdate(ydocRef.current, binaryState);
-        
+            console.log(
+              "Editor (applyYDocUpdate): YDoc Title AFTER Y.applyUpdate:",
+              ydocRef.current.getMap("metadata").get("title"),
+            );
+
             // Manually force-sync Quill with the new state of the Y.js document
-            const newDelta = ydocRef.current.getText('quill').toDelta();
-            quill.setContents(newDelta, 'api'); // Use 'api' source to avoid loops
+            const newDelta = ydocRef.current.getText("quill").toDelta();
+            quill.setContents(newDelta, "api"); // Use 'api' source to avoid loops
           }
         },
       }),

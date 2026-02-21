@@ -78,7 +78,7 @@ const SearchDocumentPopup = ({ isOpen, onClose }) => {
             className="search-input-field"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === "Enter") handleSearch();
             }}
           />

@@ -1,19 +1,24 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
+import { formatDateTime } from "@/lib/date-utils";
 
 // useDebounce Hook
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
+    const debounceEffect = () => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
 
-    return () => {
-      clearTimeout(handler);
+      const clearDebounceTimeout = () => {
+        clearTimeout(handler);
+      };
+      return clearDebounceTimeout;
     };
+    return debounceEffect();
   }, [value, delay]);
 
   return debouncedValue;
@@ -29,7 +34,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
   // Debounced filter value
   const debouncedFilter = useDebounce(filter, 500); // 500ms debounce delay
 
-  useEffect(() => {
+  const setupPopupEventListeners = () => {
     const handleClickOutside = (event) => {
       if (popupRef.current && !popupRef.current.contains(event.target)) {
         onClose();
@@ -53,15 +58,17 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscapeKey);
     };
-  }, [isOpen, onClose]);
+  };
+  useEffect(setupPopupEventListeners, [isOpen, onClose]);
 
   // Effect to fetch documents when debouncedFilter changes
-  useEffect(() => {
+  const fetchDocumentsOnFilterChange = () => {
     if (isOpen) {
       // Only fetch if the popup is open
       fetchDocuments(debouncedFilter);
     }
-  }, [debouncedFilter, isOpen]); // Rerun when debouncedFilter changes or popup opens/closes
+  };
+  useEffect(fetchDocumentsOnFilterChange, [debouncedFilter, isOpen]); // Rerun when debouncedFilter changes or popup opens/closes
 
   const fetchDocuments = async (currentFilter) => {
     setLoading(true);
@@ -158,25 +165,7 @@ const DocumentListPopup = ({ isOpen, onClose, onLoadDocument }) => {
                 >
                   <td className="document-list-td">{doc.title}</td>
                   <td className="document-list-td">
-                    {(() => {
-                      const d = new Date(doc.saved_at);
-                      const datePart = d
-                        .toLocaleDateString("ko-KR", {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                        })
-                        .replace(/\s/g, ""); // "2026.02.18." (모든 공백 제거)
-
-                      const timePart = d.toLocaleTimeString("ko-KR", {
-                        hour12: false,
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      }); // "11:05:20"
-
-                      return `${datePart} ${timePart}`;
-                    })()}
+                    {formatDateTime(doc.saved_at)}
                   </td>
                   <td className="document-list-td document-list-td-saved-by">
                     <span className="document-list-saved-by-text">

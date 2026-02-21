@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import './VersionHistory.css';
+import React, { useState, useEffect } from "react";
+import "./VersionHistory.css";
 
-const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestoreVersion }) => {
+const VersionHistory = ({
+  isOpen,
+  documentId,
+  onClose,
+  onViewMarkdown,
+  onRestoreVersion,
+}) => {
   if (!isOpen) {
     return null;
   }
@@ -10,6 +16,7 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedVersionMarkdown, setSelectedVersionMarkdown] = useState(null); // New state
 
   useEffect(() => {
     const fetchVersions = async () => {
@@ -22,12 +29,18 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`HTTP error! status: ${response.status}, text: ${errorText}`); // Log status and text
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+          console.error(
+            `HTTP error! status: ${response.status}, text: ${errorText}`,
+          ); // Log status and text
+          throw new Error(
+            `HTTP error! status: ${response.status}, message: ${errorText}`,
+          );
         }
 
         const data = await response.json();
-        setVersions(data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))); // Sort by newest first
+        setVersions(
+          data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)),
+        ); // Sort by newest first
       } catch (e) {
         console.error("Failed to fetch versions (catch block):", e); // Log catch block errors
         setError("Failed to load version history. Please try again.");
@@ -41,15 +54,35 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
     }
   }, [documentId]);
 
-
-
-  const handleVersionSelect = (version) => {
+  const handleVersionSelect = async (version) => {
+    // Made async
     setSelectedVersion(version);
+    setSelectedVersionMarkdown(null); // Clear previous markdown
+
+    try {
+      const response = await fetch(
+        `/api/documents/version-content?id=${documentId}&timestamp=${version.timestamp}&format=markdown`,
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch markdown for version: ${response.statusText}`,
+        );
+      }
+      const markdownContent = await response.text();
+      setSelectedVersionMarkdown(markdownContent);
+    } catch (e) {
+      console.error("Error fetching version markdown:", e);
+      setSelectedVersionMarkdown("Failed to load markdown content.");
+    }
   };
 
   const handleRestoreVersion = async () => {
     if (!selectedVersion) return;
-    if (window.confirm("Are you sure you want to restore this version? This will overwrite the current document.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to restore this version? This will overwrite the current document.",
+      )
+    ) {
       onRestoreVersion(selectedVersion.timestamp);
       onClose(); // Close the modal after triggering restore
     }
@@ -57,10 +90,15 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
 
   return (
     <div className="version-history-overlay" onClick={onClose}>
-      <div className="version-history-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="version-history-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="version-history-header">
           <h2>Version History for Document: {documentId}</h2>
-          <button className="close-button" onClick={onClose}>&times;</button>
+          <button className="close-button" onClick={onClose}>
+            &times;
+          </button>
         </div>
 
         {loading && <p>Loading versions...</p>}
@@ -71,28 +109,26 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
             <div className="version-list-pane">
               <ul className="version-list">
                 {versions.length === 0 ? (
-                  <p className="version-placeholder-message">No versions found for this document.</p>
+                  <p className="version-placeholder-message">
+                    No versions found for this document.
+                  </p>
                 ) : (
                   versions.map((version) => (
                     <li
                       key={version.timestamp}
-                      className={`version-item ${selectedVersion?.timestamp === version.timestamp ? 'selected' : ''}`}
+                      className={`version-item ${selectedVersion?.timestamp === version.timestamp ? "selected" : ""}`}
                       onClick={() => handleVersionSelect(version)}
                     >
                       <div className="version-summary">
-                        <span className="version-title">{version.title || 'Untitled Version'}</span>
-                        <span className="version-timestamp">
-                          {new Date(version.timestamp).toLocaleString()} by {version.author || 'Unknown'}
+                        <span className="version-title">
+                          {version.title || "Untitled Version"}
                         </span>
-                        {/* Optionally display a very short snippet of markdownSummary */}
-                        {version.summary_markdown && (
-                          <p className="summary-snippet">
-                            {version.summary_markdown.substring(0, 100)}{version.summary_markdown.length > 100 ? '...' : ''}
-                          </p>
-                        )}
-                        <div className="version-actions">
-                          <button onClick={(e) => { e.stopPropagation(); onViewMarkdown(version.timestamp); }}>View Markdown</button>
-                        </div>
+                        <span className="version-timestamp">
+                          {new Date(version.timestamp).toLocaleString()}
+                        </span>
+                        <span className="version-author">
+                          {version.author || "Unknown"}
+                        </span>
                       </div>
                     </li>
                   ))
@@ -103,16 +139,36 @@ const VersionHistory = ({ isOpen, documentId, onClose, onViewMarkdown, onRestore
             <div className="version-details-pane">
               {selectedVersion ? (
                 <div className="version-details">
-                  <h3>Selected Version Details:</h3>
-                  <p><strong>Title:</strong> {selectedVersion.title || 'Untitled'}</p>
-                  <p><strong>Timestamp:</strong> {new Date(selectedVersion.timestamp).toLocaleString()}</p>
-                  <p><strong>Author:</strong> {selectedVersion.author || 'Unknown'}</p>
                   <div className="version-actions">
-                    <button onClick={handleRestoreVersion}>Restore This Version</button>
+                    <button onClick={handleRestoreVersion}>
+                      Restore This Version
+                    </button>
                   </div>
+                  <p>
+                    <strong>Title:</strong>{" "}
+                    {selectedVersion.title || "Untitled"}
+                  </p>
+                  <p>
+                    <strong>Timestamp:</strong>{" "}
+                    {new Date(selectedVersion.timestamp).toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>Author:</strong>{" "}
+                    {selectedVersion.author || "Unknown"}
+                  </p>
+                  {selectedVersionMarkdown && (
+                    <>
+                      <hr />
+                      <pre className="markdown-preview">
+                        {selectedVersionMarkdown}
+                      </pre>
+                    </>
+                  )}
                 </div>
               ) : (
-                <p className="version-placeholder-message">Select a version from the left to see details.</p>
+                <p className="version-placeholder-message">
+                  Select a version from the left to see details.
+                </p>
               )}
             </div>
           </div>

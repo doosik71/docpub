@@ -194,7 +194,7 @@ export default function DocumentPage({ params }) {
     }
   }, []);
 
-  useEffect(() => {
+  useEffect(function applyThemeStyles() {
     const selectedTheme = themes.find((t) => t.id === theme);
     if (selectedTheme) {
       for (const [key, value] of Object.entries(selectedTheme.colors)) {
@@ -203,13 +203,13 @@ export default function DocumentPage({ params }) {
     }
   }, [theme]);
 
-  useEffect(() => {
+  useEffect(function focusTitleInputOnEdit() {
     if (isEditingTitle && titleInputRef.current) {
       titleInputRef.current.focus();
     }
   }, [isEditingTitle]);
 
-  useEffect(() => {
+  useEffect(function initializeTocOnLoad() {
     // This effect ensures the TOC is generated immediately after the document loads
     // and the editor is initialized with its content.
     if (initialEditorYDocState !== null && editorRef.current) {
@@ -245,7 +245,7 @@ export default function DocumentPage({ params }) {
     // Helper to correctly encode Uint8Array to Base64 in the browser
     const toBase64 = (arr) => {
       return btoa(
-        arr.reduce((data, byte) => data + String.fromCharCode(byte), '')
+        arr.reduce((data, byte) => data + String.fromCharCode(byte), ""),
       );
     };
 
@@ -305,7 +305,7 @@ export default function DocumentPage({ params }) {
     }
   }, [paramDocumentId, userName, editorRef, setSaveMessage, documentTitle]);
 
-  useEffect(() => {
+  useEffect(function fetchDocumentOnLoad() {
     const fetchDocumentState = async () => {
       if (!paramDocumentId) {
         setIsLoading(false);
@@ -339,8 +339,8 @@ export default function DocumentPage({ params }) {
     fetchDocumentState();
   }, [paramDocumentId]);
 
-  useEffect(() => {
-    const handleKeyDown = async (event) => {
+  useEffect(function setupKeyboardShortcuts() {
+    const handleKeyDownShortcut = async (event) => {
       if (event.ctrlKey && event.key === "s") {
         event.preventDefault();
         saveDocumentToServer(); // Call the centralized function
@@ -383,9 +383,9 @@ export default function DocumentPage({ params }) {
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDownShortcut);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDownShortcut);
     };
   }, [editorRef.current, saveDocumentToServer]); // Add saveDocumentToServer as a dependency
 
@@ -452,6 +452,9 @@ export default function DocumentPage({ params }) {
   };
 
   const handleRestoreVersion = async (timestamp) => {
+    console.log("handleRestoreVersion");
+    console.log(timestamp);
+
     try {
       const response = await fetch(
         `/api/documents/version-content?id=${paramDocumentId}&timestamp=${timestamp}&format=binary`,
@@ -474,7 +477,30 @@ export default function DocumentPage({ params }) {
         editorRef.current &&
         typeof editorRef.current.applyYDocUpdate === "function"
       ) {
+        // setInitialEditorYDocState(Buffer.from(data.state, "base64"));
+
+        console.log(
+          "title before=",
+          editorRef.current?.getYdoc()?.getMap("metadata")?.get("title"),
+        );
         editorRef.current.applyYDocUpdate(binaryData); // Load the Yjs state
+        console.log(
+          "title after=",
+          editorRef.current?.getYdoc()?.getMap("metadata")?.get("title"),
+        );
+
+        // After applying the update, retrieve the new title from the YDoc and update state
+        const restoredYDoc = editorRef.current.getYdoc();
+        if (restoredYDoc) {
+          const metadata = restoredYDoc.getMap("metadata");
+          const newTitle = metadata.get("title") || "DocPub"; // Default if title is not found
+
+          // console.log(metadata);
+          // console.log(newTitle);
+
+          setDocumentTitle(newTitle);
+        }
+
         setSaveMessage(`Restored to version ${timestamp}`);
         setIsVersionHistoryOpen(false); // Close history after restoring
       } else {
