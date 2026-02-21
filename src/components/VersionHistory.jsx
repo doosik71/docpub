@@ -7,6 +7,7 @@ const VersionHistory = ({
   onClose,
   onViewMarkdown,
   onRestoreVersion,
+  onDeleteVersion, // New prop
 }) => {
   if (!isOpen) {
     return null;
@@ -75,6 +76,17 @@ const VersionHistory = ({
     }
   };
 
+  const handleDeleteVersion = async () => {
+    if (!selectedVersion) return;
+    if (
+      window.confirm(
+        `Are you sure you want to delete the version from ${new Date(selectedVersion.timestamp).toLocaleString()}? This action cannot be undone.`,
+      )
+    ) {
+      onDeleteVersion(selectedVersion.timestamp);
+    }
+  };
+
   const handleRestoreVersion = async () => {
     if (!selectedVersion) return;
     if (
@@ -140,7 +152,13 @@ const VersionHistory = ({
                 <div className="version-details">
                   <div className="version-actions">
                     <button onClick={handleRestoreVersion}>
-                      Restore This Version
+                      Restore
+                    </button>
+                    <button
+                      onClick={handleDeleteVersion}
+                      className="delete-button"
+                    >
+                      Delete
                     </button>
                   </div>
                   <p>

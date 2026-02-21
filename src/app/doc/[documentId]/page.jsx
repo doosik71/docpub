@@ -514,6 +514,37 @@ export default function DocumentPage({ params }) {
     }
   };
 
+  const handleDeleteVersion = async (timestamp) => {
+    try {
+      const response = await fetch(
+        `/api/documents/versions?id=${paramDocumentId}&timestamp=${timestamp}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to delete version: ${response.status} - ${errorText}`,
+        );
+      }
+
+      const result = await response.json();
+      setSaveMessage(result.message);
+
+      // Force editor remount to refresh YDoc state and trigger a re-fetch of versions
+      setEditorKey((prevKey) => prevKey + 1);
+      // Re-fetch versions by effectively re-opening the modal
+      setIsVersionHistoryOpen(false);
+      setTimeout(() => setIsVersionHistoryOpen(true), 100);
+
+    } catch (error) {
+      console.error("Error deleting version:", error);
+      setSaveMessage(`Failed to delete version: ${error.message}`);
+    }
+  };
+
   const handleMenuToggle = () => setIsMenuOpen(!isMenuOpen);
   const handleMenuClose = () => setIsMenuOpen(false);
   const handleDocumentListClose = () => setIsDocumentListOpen(false);
@@ -900,6 +931,7 @@ ${fullDocumentContent}
         documentId={paramDocumentId}
         onViewMarkdown={handleViewMarkdown}
         onRestoreVersion={handleRestoreVersion}
+        onDeleteVersion={handleDeleteVersion}
       />
       {saveMessage && <div className="save-message">{saveMessage}</div>}
       {isTocOpen && (
