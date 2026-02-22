@@ -148,6 +148,20 @@
   border-color: var(--primary-hover-color);
 }
 
+.version-actions button.delete-button {
+  background-color: var(--error-color, #ef4444); /* Fallback to red-500 */
+  border-color: var(--error-color, #ef4444);
+  color: var(--button-text-color, white); /* Fallback to white */
+}
+
+.version-actions button.delete-button:hover {
+  background-color: var(
+    --error-hover-color,
+    #dc2626
+  ); /* Darker red for hover */
+  border-color: var(--error-hover-color, #dc2626);
+}
+
 .error-message {
   color: var(--error-color);
   /* Use theme variable for error color */
