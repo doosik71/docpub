@@ -43,7 +43,15 @@ export default function DocumentPage({ params }) {
   const editorRef = useRef(null);
   const [initialEditorYDocState, setInitialEditorYDocState] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [editorKey, setEditorKey] = useState(0); // Key for remounting the editor
+
+  useEffect(() => {
+    if (saveMessage) {
+      const timer = setTimeout(() => {
+        setSaveMessage(null);
+      }, 3000); // Message disappears after 3 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [saveMessage]);
 
   // Debounce utility function
   const debounce = useCallback((func, delay) => {
@@ -533,12 +541,9 @@ export default function DocumentPage({ params }) {
       const result = await response.json();
       setSaveMessage(result.message);
 
-      // Force editor remount to refresh YDoc state and trigger a re-fetch of versions
-      setEditorKey((prevKey) => prevKey + 1);
       // Re-fetch versions by effectively re-opening the modal
       setIsVersionHistoryOpen(false);
       setTimeout(() => setIsVersionHistoryOpen(true), 100);
-
     } catch (error) {
       console.error("Error deleting version:", error);
       setSaveMessage(`Failed to delete version: ${error.message}`);
@@ -886,7 +891,6 @@ ${fullDocumentContent}
       <div id="editor-wrapper-page">
         {!isLoading && (
           <DynamicQuillEditor
-            key={editorKey} // Add key prop here
             editorRefProp={editorRef}
             userName={userName}
             onMetadataUpdateProp={handleMetadataUpdate}
