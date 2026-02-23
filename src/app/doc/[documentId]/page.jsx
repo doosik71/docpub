@@ -34,7 +34,21 @@ export default function DocumentPage({ params }) {
   const [hasSelection, setHasSelection] = useState(false); // State to pass to GeminiPopup
   const [currentSelectedText, setCurrentSelectedText] = useState(""); // Stores the selected text
   const [currentSelectionRange, setCurrentSelectionRange] = useState(null); // Stores the selected range for insertion
-  const [userName, setUserName] = useState("Guest");
+  const [userName, setUserNameInternal] = useState(() => {
+    // Initialize userName from localStorage, default to "Guest"
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("userName") || "Guest";
+    }
+    return "Guest";
+  });
+
+  // Custom setter for userName that also updates localStorage
+  const setUserName = useCallback((newUserName) => {
+    setUserNameInternal(newUserName);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("userName", newUserName);
+    }
+  }, []);
   const [theme, setTheme] = useState("light");
   const [documentTitle, setDocumentTitle] = useState("DocPub");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
