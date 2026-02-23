@@ -19,8 +19,25 @@ const hocuspocusInstance = new Hocuspocus(hocuspocusConfiguration);
 const hocuspocusWss = new WebSocketServer({ noServer: true });
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = "localhost";
-const port = process.env.PORT || 3000;
+let hostname = "localhost"; // Use 'let' because we might reassign it
+let port = process.env.PORT || 3000; // Use 'let' because we might reassign it
+
+// Parse command-line arguments for --hostname
+const hostnameArgIndex = process.argv.indexOf('--hostname');
+if (hostnameArgIndex > -1 && process.argv[hostnameArgIndex + 1]) {
+  hostname = process.argv[hostnameArgIndex + 1];
+}
+
+// Parse command-line arguments for --port
+const portArgIndex = process.argv.indexOf('--port');
+if (portArgIndex > -1) {
+  const customPort = parseInt(process.argv[portArgIndex + 1], 10);
+  if (!isNaN(customPort) && customPort > 0) {
+    port = customPort;
+  } else {
+    console.warn(`Invalid port number provided: ${process.argv[portArgIndex + 1]}. Using default port ${port}.`);
+  }
+}
 
 // When using middleware `hostname` and `port` must be provided below
 const app = next({ dev, hostname, port });

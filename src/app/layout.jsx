@@ -14,8 +14,8 @@ import "./globals.css";
 // });
 
 export const metadata = { // Metadata 타입 제거
-  title: "docpub - Collaborative XML Editor",
-  description: "Open-source Collaborative XML DTP",
+  title: "docpub - Collaborative Markdown Editor",
+  description: "Open-source Collaborative Markdown Editor",
 };
 
 export default function RootLayout({
