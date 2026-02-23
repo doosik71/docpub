@@ -188,7 +188,7 @@ const QuillEditor = forwardRef(
           handleMetadataUpdate();
 
           const newProvider = new HocuspocusProvider({
-            url: "ws://localhost:3000/hocuspocus",
+            url: `ws://${window.location.host}/hocuspocus`,
             name: activeDocumentId, // Use activeDocumentId for provider name
             document: ydocRef.current,
           });

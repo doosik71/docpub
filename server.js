@@ -39,6 +39,11 @@ if (portArgIndex > -1) {
   }
 }
 
+// Set HMR endpoint for Next.js client
+if (dev) {
+  process.env.__NEXT_HMR_ENDPOINT__ = `http://${hostname}:${port}`;
+}
+
 // When using middleware `hostname` and `port` must be provided below
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
