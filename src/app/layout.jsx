@@ -13,17 +13,20 @@ import "./globals.css";
 //   subsets: ["latin"],
 // });
 
-export const metadata = { // Metadata 타입 제거
-  title: "docpub - Collaborative Markdown Editor",
+export const metadata = {
+  // Metadata 타입 제거
+  title: "Marco - Collaborative Markdown Editor",
   description: "Open-source Collaborative Markdown Editor",
 };
 
-export default function RootLayout({
-  children,
-}) { // Readonly<{ children: React.ReactNode; }> 타입 제거
+export default function RootLayout({ children }) {
+  // Readonly<{ children: React.ReactNode; }> 타입 제거
   return (
     <html lang="en">
-      <body /* className={`${geistSans.variable} ${geistMono.variable} antialiased`} */ > {/* Geist 폰트 클래스 제거 */}
+      <body /* className={`${geistSans.variable} ${geistMono.variable} antialiased`} */
+      >
+        {" "}
+        {/* Geist 폰트 클래스 제거 */}
         {children}
       </body>
     </html>

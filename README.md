@@ -1,12 +1,12 @@
-# 📄 docpub (Open-source Collaborative Document Editor)
+# 📄 Marco (Open-source Collaborative Document Editor)
 
-**docpub**는 마크다운 수준의 레이아웃과 실시간 협업을 지원하는 웹 기반 문서 편집기입니다.
+**Marco**는 마크다운 수준의 레이아웃과 실시간 협업을 지원하는 웹 기반 문서 편집기입니다.
 
 ---
 
 ## 🌟 프로젝트 개요
 
-기존의 웹 편집기들은 마크다운의 단순함에 갇혀 있거나, 바이너리 형식의 폐쇄적인 구조를 가지고 있습니다. **docpub**은 복잡한 문서 구조를 반영할 수 있는 **Y.Doc Binary State 기반의 .bin 파일 저장 방식**을 채택하면서도, 브라우저 환경에서 고수준의 시각적 편집과 **AI 및 동료와의 실시간 협업**을 가능하게 합니다.
+기존의 웹 편집기들은 마크다운의 단순함에 갇혀 있거나, 바이너리 형식의 폐쇄적인 구조를 가지고 있습니다. **Marco**은 복잡한 문서 구조를 반영할 수 있는 **Y.Doc Binary State 기반의 .bin 파일 저장 방식**을 채택하면서도, 브라우저 환경에서 고수준의 시각적 편집과 **AI 및 동료와의 실시간 협업**을 가능하게 합니다.
 
 ## ✨ 주요 기능 (Key Features)
 
@@ -37,8 +37,8 @@
 ### 설치 방법
 
 ```bash
-git clone https://github.com/doosik71/docpub.git
-cd docpub
+git clone https://github.com/doosik71/marco.git
+cd marco
 pnpm install # 또는 npm install
 ```
 
@@ -57,7 +57,7 @@ npm run server # Hocuspocus 협업 서버 및 Express API (src/server/collaborat
 
 ## 🤝 기여 방법 (Contributing)
 
-**docpub**은 오픈 소스 프로젝트입니다. 문서 구조 개선, 새로운 UI 컴포넌트 개발, AI 기능 강화 등 여러분의 모든 기여를 환영합니다!
+**Marco**은 오픈 소스 프로젝트입니다. 문서 구조 개선, 새로운 UI 컴포넌트 개발, AI 기능 강화 등 여러분의 모든 기여를 환영합니다!
 
 1. Issue를 통해 개선 사항을 제안해 주세요.
 2. Pull Request를 통해 코드를 제출해 주세요.

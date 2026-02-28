@@ -1,6 +1,6 @@
-# 🛠 DEVELOPMENT.md (docpub Development Guide)
+# 🛠 DEVELOPMENT.md (Marco Development Guide)
 
-이 문서는 **docpub** 프로젝트의 로컬 개발 환경 설정, 코딩 컨벤션, 빌드 및 배포 프로세스를 상세히 안내합니다.
+이 문서는 **Marco** 프로젝트의 로컬 개발 환경 설정, 코딩 컨벤션, 빌드 및 배포 프로세스를 상세히 안내합니다.
 
 ## 1. 개발 환경 설정 (Prerequisites)
 
@@ -15,8 +15,8 @@
 ### 2.1 저장소 복제 및 의존성 설치
 
 ```bash
-git clone https://github.com/doosik71/docpub.git
-cd docpub
+git clone https://github.com/doosik71/marco.git
+cd marco
 pnpm install
 ```
 
@@ -32,7 +32,7 @@ cp .env.example .env.local
 
 ### 2.3 개발 서버 실행
 
-`docpub`은 프론트엔드(Next.js), Hocuspocus 협업 서버, 그리고 Express 기반 문서 API 서버로 구성됩니다.
+`Marco`은 프론트엔드(Next.js), Hocuspocus 협업 서버, 그리고 Express 기반 문서 API 서버로 구성됩니다.
 
 ```bash
 pnpm dev # Next.js 개발 서버 (프론트엔드 및 API 라우트)
@@ -47,7 +47,7 @@ npm run server # Hocuspocus 협업 서버 및 Express API (src/server/collaborat
 
 ### 3.1 Quill Editor 및 Y.Doc 구조
 
-`docpub`은 Quill Editor를 사용하여 WYSIWYG 편집을 제공하며, 모든 문서 상태는 Yjs의 `Y.Doc` 형태로 관리됩니다. Y.Doc은 Quill Editor와 `y-quill` 바인딩을 통해 실시간으로 동기화됩니다.
+`Marco`은 Quill Editor를 사용하여 WYSIWYG 편집을 제공하며, 모든 문서 상태는 Yjs의 `Y.Doc` 형태로 관리됩니다. Y.Doc은 Quill Editor와 `y-quill` 바인딩을 통해 실시간으로 동기화됩니다.
 
 ```javascript
 // 예시: Y.Doc에서 Quill 델타 접근

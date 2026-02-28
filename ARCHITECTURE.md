@@ -1,10 +1,10 @@
-# 🏗 ARCHITECTURE.md (docpub Architecture)
+# 🏗 ARCHITECTURE.md (Marco Architecture)
 
-이 문서는 **docpub**의 시스템 구조, 데이터 관리 전략 및 지능형 편집 워크플로우를 상세히 설명합니다.
+이 문서는 **Marco**의 시스템 구조, 데이터 관리 전략 및 지능형 편집 워크플로우를 상세히 설명합니다.
 
 ## 1. 시스템 아키텍처 (System Layers)
 
-`docpub`은 다음과 같은 5개의 핵심 레이어로 구성됩니다.
+`Marco`은 다음과 같은 5개의 핵심 레이어로 구성됩니다.
 
 - **User & Auth Layer**: RBAC(역할 기반 접근 제어)를 통한 사용자 인증 및 세션 관리.
 - **Storage Layer**: 계층적 폴더 구조와 **UUID 기반 .bin 파일**을 통한 문서 영속성 계층.

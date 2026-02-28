@@ -50,7 +50,7 @@ export default function DocumentPage({ params }) {
     }
   }, []);
   const [theme, setTheme] = useState("light");
-  const [documentTitle, setDocumentTitle] = useState("DocPub");
+  const [documentTitle, setDocumentTitle] = useState("Untitled");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
   const titleInputRef = useRef(null);
@@ -206,7 +206,7 @@ export default function DocumentPage({ params }) {
     if (metadata.title) {
       setDocumentTitle(metadata.title);
     } else {
-      setDocumentTitle("DocPub");
+      setDocumentTitle("Untitled");
     }
   }, []);
 
@@ -517,7 +517,7 @@ export default function DocumentPage({ params }) {
         const ydoc = editorRef.current.getYdoc();
         if (ydoc) {
           const metadata = ydoc.getMap("metadata");
-          setDocumentTitle(metadata.get("title") || "DocPub");
+          setDocumentTitle(metadata.get("title") || "Untitled");
         }
       } else {
         console.warn(
@@ -696,7 +696,7 @@ ${fullDocumentContent}
 
     const newTitle = documentTitle.trim();
 
-    setDocumentTitle(newTitle !== "" ? newTitle : "DocPub");
+    setDocumentTitle(newTitle !== "" ? newTitle : "Untitled");
 
     // Update the Ydoc metadata with the final title after editing is complete
     if (editorRef.current?.setDocumentTitle) {
@@ -710,7 +710,7 @@ ${fullDocumentContent}
       setIsEditingTitle(false);
 
       if (documentTitle.trim() === "") {
-        setDocumentTitle("DocPub");
+        setDocumentTitle("Untitled");
       }
       // Update the Ydoc metadata with the final title after editing is complete
       if (editorRef.current?.setDocumentTitle) {
@@ -737,7 +737,7 @@ ${fullDocumentContent}
             />
           ) : (
             <h1 className="document-title" onClick={handleTitleClick}>
-              {documentTitle.trim() !== "" ? documentTitle : "DocPub"}
+              {documentTitle.trim() !== "" ? documentTitle : "Untitled"}
             </h1>
           )}
           <div className="header-buttons-container">
